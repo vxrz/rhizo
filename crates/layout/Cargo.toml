@@ -1,0 +1,13 @@
+[package]
+name = "rhizo-layout"
+description = "Layout engines for rhizo: tidy trees, mindmaps, layered graphs, grids"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+
+[dev-dependencies]
+rhizo-lang.workspace = true

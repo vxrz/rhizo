@@ -1,0 +1,20 @@
+[package]
+name = "rhizo-render"
+description = "SVG, PNG and PDF rendering for rhizo"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-layout.workspace = true
+usvg.workspace = true
+resvg.workspace = true
+krilla.workspace = true
+krilla-svg.workspace = true
+ttf-parser.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+rhizo-lang.workspace = true
