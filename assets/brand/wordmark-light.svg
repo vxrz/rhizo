@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 312 110" role="img" aria-label="rhizo">
+  <title>rhizo</title>
+  <g fill="none" stroke="#14131f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#6366f1"/>
+</svg>

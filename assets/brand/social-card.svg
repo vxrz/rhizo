@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="rhizo: think in graphs, ship in any format">
+  <title>rhizo: think in graphs, ship in any format</title>
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d1b30"/><stop offset="1" stop-color="#0b0b11"/>
+    </linearGradient>
+    <radialGradient id="cardglow" cx="0.25" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.28"/><stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#card)"/>
+  <rect width="1280" height="640" fill="url(#cardglow)"/>
+  <svg x="60" y="120" width="400" height="400" viewBox="0 0 1024 1024">
+  <title>rhizo</title>
+  <defs>
+    <linearGradient id="i-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#23213a"/>
+      <stop offset="0.55" stop-color="#14131f"/>
+      <stop offset="1" stop-color="#0b0b11"/>
+    </linearGradient>
+    <radialGradient id="i-halo" cx="0.36" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#818cf8" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="i-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="i-g-indigo" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292">
+      <stop offset="0" stop-color="#e0e7ff"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="i-g-sky" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="660" y2="512">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="i-g-emerald" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736">
+      <stop offset="0" stop-color="#d1fae5"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="i-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="i-body">
+      <rect x="100" y="100" width="824" height="824" rx="186"/>
+    </clipPath>
+  </defs>
+
+  <!-- Body: macOS-grid squircle, ink with a violet cast -->
+  <g clip-path="url(#i-body)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-bg)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-halo)"/>
+    <!-- The canvas: a faint dot grid -->
+    <g fill="#ffffff" fill-opacity="0.055">
+      <circle cx="196" cy="196" r="5"/><circle cx="292" cy="196" r="5"/><circle cx="388" cy="196" r="5"/><circle cx="484" cy="196" r="5"/><circle cx="580" cy="196" r="5"/><circle cx="676" cy="196" r="5"/><circle cx="772" cy="196" r="5"/><circle cx="868" cy="196" r="5"/>
+      <circle cx="196" cy="292" r="5"/><circle cx="292" cy="292" r="5"/><circle cx="388" cy="292" r="5"/><circle cx="484" cy="292" r="5"/><circle cx="580" cy="292" r="5"/><circle cx="676" cy="292" r="5"/><circle cx="772" cy="292" r="5"/><circle cx="868" cy="292" r="5"/>
+      <circle cx="196" cy="388" r="5"/><circle cx="292" cy="388" r="5"/><circle cx="388" cy="388" r="5"/><circle cx="484" cy="388" r="5"/><circle cx="580" cy="388" r="5"/><circle cx="676" cy="388" r="5"/><circle cx="772" cy="388" r="5"/><circle cx="868" cy="388" r="5"/>
+      <circle cx="196" cy="484" r="5"/><circle cx="292" cy="484" r="5"/><circle cx="388" cy="484" r="5"/><circle cx="484" cy="484" r="5"/><circle cx="580" cy="484" r="5"/><circle cx="676" cy="484" r="5"/><circle cx="772" cy="484" r="5"/><circle cx="868" cy="484" r="5"/>
+      <circle cx="196" cy="580" r="5"/><circle cx="292" cy="580" r="5"/><circle cx="388" cy="580" r="5"/><circle cx="484" cy="580" r="5"/><circle cx="580" cy="580" r="5"/><circle cx="676" cy="580" r="5"/><circle cx="772" cy="580" r="5"/><circle cx="868" cy="580" r="5"/>
+      <circle cx="196" cy="676" r="5"/><circle cx="292" cy="676" r="5"/><circle cx="388" cy="676" r="5"/><circle cx="484" cy="676" r="5"/><circle cx="580" cy="676" r="5"/><circle cx="676" cy="676" r="5"/><circle cx="772" cy="676" r="5"/><circle cx="868" cy="676" r="5"/>
+      <circle cx="196" cy="772" r="5"/><circle cx="292" cy="772" r="5"/><circle cx="388" cy="772" r="5"/><circle cx="484" cy="772" r="5"/><circle cx="580" cy="772" r="5"/><circle cx="676" cy="772" r="5"/><circle cx="772" cy="772" r="5"/><circle cx="868" cy="772" r="5"/>
+      <circle cx="196" cy="868" r="5"/><circle cx="292" cy="868" r="5"/><circle cx="388" cy="868" r="5"/><circle cx="484" cy="868" r="5"/><circle cx="580" cy="868" r="5"/><circle cx="676" cy="868" r="5"/><circle cx="772" cy="868" r="5"/><circle cx="868" cy="868" r="5"/>
+    </g>
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-rim)"/>
+  </g>
+
+  <!-- The mark: a seed sending out shoots, drawn the way rhizo draws mindmaps -->
+  <g transform="translate(-24 0)">
+    <g fill="none" stroke-linecap="round" stroke-width="38">
+      <path d="M380 512 C 500 512, 500 292, 610 292" stroke="url(#i-g-indigo)"/>
+      <path d="M380 512 L 660 512" stroke="url(#i-g-sky)"/>
+      <path d="M380 512 C 490 512, 490 736, 590 736" stroke="url(#i-g-emerald)"/>
+    </g>
+    <g fill="none" stroke-linecap="round" stroke-width="22">
+      <path d="M650 292 C 720 292, 718 206, 780 206" stroke="#fbbf24"/>
+      <path d="M630 736 C 700 736, 698 812, 760 812" stroke="#f472b6"/>
+    </g>
+
+    <!-- a cross-link: the moment a tree becomes a rhizome -->
+    <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+
+    <!-- glows -->
+    <g filter="url(#i-glow)" opacity="0.75">
+      <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+      <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+      <circle cx="626" cy="736" r="46" fill="#34d399"/>
+      <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+      <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+      <circle cx="356" cy="512" r="96" fill="#a5b4fc"/>
+    </g>
+
+    <!-- nodes -->
+    <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+    <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+    <circle cx="626" cy="736" r="46" fill="#34d399"/>
+    <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+    <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+
+    <!-- the seed -->
+    <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+    <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+  </g>
+</svg>
+  <svg x="556" y="150" width="390.0" height="137.5" viewBox="0 0 312 110"><g fill="none" stroke="#f8f8fc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#818cf8"/></svg>
+  <g font-family="Inter, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="560" y="380" font-size="44" font-weight="600" fill="#f4f4f5">Think in graphs.</text>
+    <text x="560" y="432" font-size="44" font-weight="600" fill="#a5b4fc">Ship in any format.</text>
+    <rect x="560" y="460" width="92" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="606" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">Mermaid</text><rect x="661.8" y="460" width="45" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="684" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">D2</text><rect x="716.5999999999999" y="460" width="101" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="767" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">Graphviz</text><rect x="827.8" y="460" width="92" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="874" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">draw.io</text><rect x="929.5999999999999" y="460" width="64" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="961" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">OPML</text><rect x="1003.1999999999999" y="460" width="101" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="1054" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">FreeMind</text><rect x="560" y="508" width="129" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="625" y="533" text-anchor="middle" font-size="17" fill="#c7c7d6">JSON Canvas</text><rect x="699.4" y="508" width="167" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="783" y="533" text-anchor="middle" font-size="17" fill="#c7c7d6">SVG · PNG · PDF</text>
+  </g>
+</svg>

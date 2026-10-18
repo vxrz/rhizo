@@ -1,6 +1,11 @@
-# rhizo
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-dark.svg">
+    <img src="assets/brand/logo-light.svg" alt="rhizo" width="260">
+  </picture>
+</h1>
 
-Diagrams and mindmaps as plain text, rendered fast and exported to the formats other tools actually read.
+**Think in graphs. Ship in any format.** Diagrams and mindmaps as plain text, rendered fast and exported to the formats other tools actually read.
 
 <p>
   <img src="docs/mindmap.png" alt="A mindmap rendered by rhizo" width="720">

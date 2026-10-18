@@ -1,0 +1,298 @@
+<title>rhizo Brand Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: the page is a rhizo canvas. A dot grid underneath, and each
+   section is a frame with its label in the top-left corner, as rhizo draws them. */
+:root {
+  --ink: #14131f;
+  --paper: #f8f8fc;
+  --indigo: #6366f1;
+  --bg: #0f0e18;
+  --surface: #17162400;
+  --frame: #1a1928;
+  --frame-line: #2a2840;
+  --fg: #ecebf5;
+  --muted: #9a98b3;
+  --dot: rgba(255,255,255,.06);
+  --accent: #a5b4fc;
+  --code-bg: #121120;
+  --display: "Unbounded", "Figtree", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f3fa; --frame: #ffffff; --frame-line: #e3e1ef; --fg: #1b1a29; --muted: #67657f;
+    --dot: rgba(20,19,31,.08); --accent: #4f46e5; --code-bg: #f7f6fc; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f3fa; --frame: #ffffff; --frame-line: #e3e1ef; --fg: #1b1a29; --muted: #67657f;
+  --dot: rgba(20,19,31,.08); --accent: #4f46e5; --code-bg: #f7f6fc; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.4px, transparent 1.6px);
+  background-size: 28px 28px;
+  color: var(--fg);
+  font: 400 16px/1.6 var(--body);
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: grid; gap: 28px;
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h2 { font: 700 clamp(22px, 3vw, 30px)/1.15 var(--display); letter-spacing: -.01em; }
+h3 { font: 600 17px/1.3 var(--body); }
+p { margin: 0; max-width: 62ch; }
+.muted { color: var(--muted); }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+
+/* Frames, styled after rhizo's own frame boxes */
+.frame {
+  position: relative; background: var(--frame); border: 1px solid var(--frame-line);
+  border-radius: 18px; padding: 52px clamp(18px, 4vw, 40px) clamp(22px, 4vw, 40px);
+  display: grid; gap: 24px; min-width: 0;
+}
+.frame > .label {
+  position: absolute; top: 18px; left: clamp(18px, 4vw, 40px);
+  font: 600 12px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Hero */
+.hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: clamp(20px, 4vw, 48px); }
+.hero .icon { width: 100%; max-width: 420px; justify-self: center; filter: drop-shadow(0 30px 60px rgba(30,20,90,.35)); }
+.hero .words { display: grid; gap: 22px; min-width: 0; }
+.wordmark { width: min(300px, 70%); color: var(--fg); }
+.tagline { font: 700 clamp(26px, 4vw, 40px)/1.12 var(--display); letter-spacing: -.015em; }
+.tagline span { color: var(--accent); }
+pre {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--frame-line); border-radius: 12px;
+  padding: 16px 18px; overflow-x: auto; font: 400 13.5px/1.65 var(--mono); color: var(--fg);
+}
+.k { color: var(--muted); } .s { color: var(--accent); }
+.c-indigo { color: #818cf8; } .c-sky { color: #38bdf8; } .c-emerald { color: #34d399; } .c-amber { color: #fbbf24; } .c-pink { color: #f472b6; }
+
+/* Anatomy */
+.anatomy { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 28px; align-items: center; }
+.anatomy-figure { position: relative; background: var(--ink); border-radius: 16px; padding: 18px; }
+.anatomy dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 18px; }
+.anatomy dt { font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.anatomy dd { margin: 0; color: var(--muted); }
+.swatch-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+
+/* Logo tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.tile { border-radius: 14px; padding: 28px; display: grid; place-items: center; min-height: 170px; border: 1px solid var(--frame-line); }
+.tile svg { width: 100%; max-height: 90px; }
+.tile.mark svg { max-height: 120px; }
+.on-ink { background: var(--ink); color: var(--paper); }
+.on-paper { background: var(--paper); color: var(--ink); }
+.on-indigo { background: var(--indigo); color: #ffffff; }
+.tile figcaption { margin-top: 14px; font: 500 12.5px/1.3 var(--mono); opacity: .7; }
+.tile figure { margin: 0; display: grid; place-items: center; width: 100%; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.rule { display: grid; gap: 6px; }
+.rule h3 { display: flex; gap: 8px; align-items: baseline; }
+.rule .tag { font: 600 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; }
+.do { color: #10b981; background: rgba(16,185,129,.12); }
+.dont { color: #f87171; background: rgba(248,113,113,.12); }
+
+/* Color */
+.palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.chip {
+  border: 1px solid var(--frame-line); border-radius: 14px; overflow: hidden; background: var(--code-bg);
+  display: grid; text-align: left; padding: 0; cursor: pointer; color: var(--fg); font: inherit;
+}
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip .fill { height: 84px; display: grid; grid-template-columns: 1fr 1fr; }
+.chip .meta { padding: 12px 14px; display: grid; gap: 2px; }
+.chip .name { font-weight: 600; }
+.chip .hex { font: 400 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.copied { color: var(--accent) !important; }
+
+/* Type */
+.type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.specimen { border: 1px solid var(--frame-line); border-radius: 14px; padding: 20px; display: grid; gap: 10px; min-width: 0; }
+.specimen .big { font-size: 34px; line-height: 1.1; overflow-wrap: anywhere; }
+.specimen .role { font: 600 11.5px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+/* Voice */
+.voice { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.lines { display: grid; gap: 10px; }
+.line { font: 600 19px/1.3 var(--display); letter-spacing: -.01em; }
+.words { display: flex; flex-wrap: wrap; gap: 8px; }
+.word { border: 1px solid var(--frame-line); border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+.word.no { text-decoration: line-through; color: var(--muted); }
+
+.card-preview { border-radius: 14px; overflow: hidden; border: 1px solid var(--frame-line); }
+.card-preview svg { display: block; width: 100%; height: auto; }
+.files { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 24px; font: 400 13px/1.7 var(--mono); color: var(--muted); }
+.files b { color: var(--fg); font-weight: 500; }
+
+@media (max-width: 760px) {
+  .hero, .anatomy { grid-template-columns: minmax(0, 1fr); }
+  .hero .icon { max-width: 280px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero .icon { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { transform: translateY(14px) scale(.97); } to { transform: none; } }
+}
+</style>
+
+<div class="wrap">
+
+  <section class="frame hero" aria-labelledby="hero-title">
+    <span class="label">rhizo · brand</span>
+    <div class="icon" role="img" aria-label="The rhizo app icon">{{ICON}}</div>
+    <div class="words">
+      <div class="wordmark">{{WORDMARK}}</div>
+      <h1 id="hero-title" class="tagline">Think in graphs.<br><span>Ship in any format.</span></h1>
+      <p class="muted">The mark is a rhizo document. Seed, shoots and one cross-link, drawn with the same curves the app uses for mindmaps:</p>
+<pre><span class="k">-</span> <span class="s">"seed"</span> {
+    <span class="k">-</span> <span class="c-indigo">"indigo"</span> { <span class="k">-</span> <span class="c-amber">"amber"</span> }
+    <span class="k">-</span> <span class="c-sky">"sky"</span>
+    <span class="k">-</span> <span class="c-emerald">"emerald"</span> { <span class="k">-</span> <span class="c-pink">"pink"</span> }
+}
+<span class="k">edge</span> sky pink <span class="k">line=</span>dotted <span class="k">arrow=</span>none</pre>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="idea">
+    <span class="label">Idea</span>
+    <h2 id="idea">A tree that learned to connect sideways</h2>
+    <div class="anatomy">
+      <div class="anatomy-figure" role="img" aria-label="The rhizo mark">{{MARK_DARK}}</div>
+      <dl>
+        <dt><span class="swatch-dot" style="background:#f8f8fc"></span>Seed</dt>
+        <dd>Where a thought starts. White with an indigo core, the same as a mindmap root in the app.</dd>
+        <dt><span class="swatch-dot" style="background:#818cf8"></span>Shoots</dt>
+        <dd>Three branches in the product's branch colors, curving out the way rhizo routes mindmap edges.</dd>
+        <dt><span class="swatch-dot" style="background:#fbbf24"></span>Sprouts</dt>
+        <dd>Smaller growth off the shoots. Ideas keep branching.</dd>
+        <dt><span class="swatch-dot" style="background:transparent;border:2px dotted #c7c7d6"></span>Cross-link</dt>
+        <dd>The dotted line between two branches. A rhizome has no fixed hierarchy: any point can connect to any other. This one line turns a tree into a graph.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="logos">
+    <span class="label">Logo</span>
+    <h2 id="logos">Lockups and marks</h2>
+    <div class="tiles">
+      <figure class="tile on-paper"><figure>{{LOGO_LIGHT}}<figcaption>logo-light.svg</figcaption></figure></figure>
+      <figure class="tile on-ink"><figure>{{LOGO_DARK}}<figcaption>logo-dark.svg</figcaption></figure></figure>
+    </div>
+    <div class="tiles">
+      <figure class="tile mark on-ink"><figure>{{MARK_DARK}}<figcaption>mark-dark.svg</figcaption></figure></figure>
+      <figure class="tile mark on-paper"><figure>{{MARK_LIGHT}}<figcaption>mark-light.svg</figcaption></figure></figure>
+      <figure class="tile mark on-indigo"><figure>{{MARK_MONO}}<figcaption>mark-mono.svg</figcaption></figure></figure>
+    </div>
+    <div class="rules">
+      <div class="rule"><h3><span class="tag do">Do</span> Keep clear space</h3><p class="muted">Leave at least the seed's diameter empty on every side of the mark.</p></div>
+      <div class="rule"><h3><span class="tag do">Do</span> Respect minimum sizes</h3><p class="muted">Mark: 16 px (use the favicon below 32 px). Lockup: 96 px wide.</p></div>
+      <div class="rule"><h3><span class="tag dont">Don't</span> Recolor the branches</h3><p class="muted">Use the color, light or one-color mark. Never swap branch hues or add gradients to the wordmark.</p></div>
+      <div class="rule"><h3><span class="tag dont">Don't</span> Drop the cross-link</h3><p class="muted">Without it the mark is just a tree. It is small on purpose, not optional.</p></div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="color">
+    <span class="label">Color</span>
+    <h2 id="color">Ink, paper and five branches</h2>
+    <p class="muted">The branch colors are the app's own theme palette, so a rhizo mindmap is on-brand by default. Each chip shows the light-theme value on the left and the dark-theme value on the right. Click a chip to copy both.</p>
+    <div class="palette" id="palette"></div>
+  </section>
+
+  <section class="frame" aria-labelledby="type">
+    <span class="label">Type</span>
+    <h2 id="type">The wordmark is drawn, not typed</h2>
+    <p class="muted">The wordmark is a monoline drawing (x-height 60, stroke 14, round caps), and the tittle on the i is a node. Never set "rhizo" in a font as a logo. In running text it is always lowercase.</p>
+    <div class="type-grid">
+      <div class="specimen"><span class="role">Display · Unbounded</span><span class="big" style="font-family:var(--display);font-weight:700">Grow the graph</span><span class="muted">Headlines and social cards. Use it sparingly.</span></div>
+      <div class="specimen"><span class="role">Text · Figtree</span><span class="big" style="font-family:var(--body);font-weight:500">Every format, one model</span><span class="muted">Docs, website and marketing copy.</span></div>
+      <div class="specimen"><span class="role">Code · JetBrains Mono</span><span class="big" style="font-family:var(--mono);font-size:26px">edge a b label="go"</span><span class="muted">Snippets, file names and tokens.</span></div>
+      <div class="specimen"><span class="role">Product UI · system sans</span><span class="big" style="font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif;font-weight:500">Customers</span><span class="muted">Inside diagrams: Inter, then the platform's sans, chosen for legibility at 12–17 px.</span></div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="voice">
+    <span class="label">Voice</span>
+    <h2 id="voice">Plain, precise, a little alive</h2>
+    <div class="voice">
+      <div class="lines">
+        <h3>Lines we use</h3>
+        <span class="line">Think in graphs. Ship in any format.</span>
+        <span class="line">Diagrams that grow roots.</span>
+        <span class="line">Write it. See it. Export it anywhere.</span>
+      </div>
+      <div class="lines">
+        <h3>How we sound</h3>
+        <p class="muted">Like a good engineer explaining their tool: concrete, short sentences, real examples over adjectives. Name formats and numbers ("renders 5,000 nodes in 0.4 s"), not vague claims ("blazing fast").</p>
+        <div class="words" aria-label="Preferred and avoided words">
+          <span class="word">graph</span><span class="word">node</span><span class="word">frame</span><span class="word">export</span><span class="word">plain text</span>
+          <span class="word no">synergy</span><span class="word no">revolutionary</span><span class="word no">AI-powered</span><span class="word no">seamless</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="social">
+    <span class="label">Social</span>
+    <h2 id="social">Repository card</h2>
+    <p class="muted">1280 × 640, for the repository's social preview. Upload <code>assets/brand/png/social-card.png</code>.</p>
+    <div class="card-preview" role="img" aria-label="Social card: rhizo, think in graphs, ship in any format">{{SOCIAL}}</div>
+    <div class="files">
+      <span><b>icon.svg</b> app icon, hand-tuned</span>
+      <span><b>rhizo.icns</b> macOS icon set</span>
+      <span><b>png/icon-16…1024.png</b> every size</span>
+      <span><b>favicon.svg</b> adapts to light/dark</span>
+      <span><b>logo-{light,dark}.svg</b> lockups</span>
+      <span><b>mark-{dark,light,mono}.svg</b> marks</span>
+      <span><b>wordmark-{light,dark}.svg</b> wordmarks</span>
+      <span><b>generate.py</b> rebuilds all derived files</span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const colors = [
+  ["Ink", "#14131f", "#14131f", "Surfaces, the dark icon body, text on paper"],
+  ["Paper", "#f8f8fc", "#f8f8fc", "Light surfaces, the seed"],
+  ["Indigo", "#6366f1", "#818cf8", "Primary accent, first branch, the seed's core"],
+  ["Sky", "#0ea5e9", "#38bdf8", "Second branch"],
+  ["Emerald", "#10b981", "#34d399", "Third branch"],
+  ["Amber", "#f59e0b", "#fbbf24", "Fourth branch, sprouts"],
+  ["Pink", "#ec4899", "#f472b6", "Sprouts, later branches"],
+];
+const host = document.getElementById("palette");
+for (const [name, light, dark, use] of colors) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.type = "button";
+  b.title = use;
+  b.setAttribute("aria-label", `${name}: ${light} light, ${dark} dark. Copy`);
+  b.innerHTML = `<span class="fill"><span style="background:${light}"></span><span style="background:${dark}"></span></span>
+    <span class="meta"><span class="name">${name}</span><span class="hex">${light}${light === dark ? "" : " · " + dark}</span></span>`;
+  b.addEventListener("click", () => {
+    const text = light === dark ? light : `${light} ${dark}`;
+    const hex = b.querySelector(".hex");
+    const done = () => { hex.textContent = "Copied"; hex.classList.add("copied");
+      setTimeout(() => { hex.textContent = light === dark ? light : `${light} · ${dark}`; hex.classList.remove("copied"); }, 1200); };
+    try {
+      navigator.clipboard.writeText(text).then(done, () => { hex.textContent = text; });
+    } catch { hex.textContent = text; }
+  });
+  host.appendChild(b);
+}
+</script>

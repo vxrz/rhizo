@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (for light backgrounds)">
+  <title>rhizo mark (for light backgrounds)</title>
+  <path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="#6366f1" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="#0ea5e9" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="#10b981" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#ec4899" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#14131f" stroke-opacity="0.3" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#6366f1"/>
+  <circle cx="702" cy="512" r="46" fill="#0ea5e9"/>
+  <circle cx="626" cy="736" r="46" fill="#10b981"/>
+  <circle cx="804" cy="206" r="30" fill="#f59e0b"/>
+  <circle cx="784" cy="812" r="30" fill="#ec4899"/>
+  <circle cx="356" cy="512" r="88" fill="#14131f"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+</svg>

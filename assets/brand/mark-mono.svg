@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (one color)">
+  <title>rhizo mark (one color)</title>
+  <path d="M444 512 C 500 512, 500 292, 610 292" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M444 512 L 660 512" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M444 512 C 490 512, 490 736, 590 736" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="currentColor"/>
+  <circle cx="702" cy="512" r="46" fill="currentColor"/>
+  <circle cx="626" cy="736" r="46" fill="currentColor"/>
+  <circle cx="804" cy="206" r="30" fill="currentColor"/>
+  <circle cx="784" cy="812" r="30" fill="currentColor"/>
+  <path fill="currentColor" fill-rule="evenodd" d="M268 512 a88 88 0 1 0 176 0 a88 88 0 1 0 -176 0 M326 512 a30 30 0 1 0 60 0 a30 30 0 1 0 -60 0"/>
+</svg>

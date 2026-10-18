@@ -1,0 +1,629 @@
+<title>rhizo Brand Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: the page is a rhizo canvas. A dot grid underneath, and each
+   section is a frame with its label in the top-left corner, as rhizo draws them. */
+:root {
+  --ink: #14131f;
+  --paper: #f8f8fc;
+  --indigo: #6366f1;
+  --bg: #0f0e18;
+  --surface: #17162400;
+  --frame: #1a1928;
+  --frame-line: #2a2840;
+  --fg: #ecebf5;
+  --muted: #9a98b3;
+  --dot: rgba(255,255,255,.06);
+  --accent: #a5b4fc;
+  --code-bg: #121120;
+  --display: "Unbounded", "Figtree", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f3fa; --frame: #ffffff; --frame-line: #e3e1ef; --fg: #1b1a29; --muted: #67657f;
+    --dot: rgba(20,19,31,.08); --accent: #4f46e5; --code-bg: #f7f6fc; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f3fa; --frame: #ffffff; --frame-line: #e3e1ef; --fg: #1b1a29; --muted: #67657f;
+  --dot: rgba(20,19,31,.08); --accent: #4f46e5; --code-bg: #f7f6fc; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.4px, transparent 1.6px);
+  background-size: 28px 28px;
+  color: var(--fg);
+  font: 400 16px/1.6 var(--body);
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: grid; gap: 28px;
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h2 { font: 700 clamp(22px, 3vw, 30px)/1.15 var(--display); letter-spacing: -.01em; }
+h3 { font: 600 17px/1.3 var(--body); }
+p { margin: 0; max-width: 62ch; }
+.muted { color: var(--muted); }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+
+/* Frames, styled after rhizo's own frame boxes */
+.frame {
+  position: relative; background: var(--frame); border: 1px solid var(--frame-line);
+  border-radius: 18px; padding: 52px clamp(18px, 4vw, 40px) clamp(22px, 4vw, 40px);
+  display: grid; gap: 24px; min-width: 0;
+}
+.frame > .label {
+  position: absolute; top: 18px; left: clamp(18px, 4vw, 40px);
+  font: 600 12px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Hero */
+.hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: clamp(20px, 4vw, 48px); }
+.hero .icon { width: 100%; max-width: 420px; justify-self: center; filter: drop-shadow(0 30px 60px rgba(30,20,90,.35)); }
+.hero .words { display: grid; gap: 22px; min-width: 0; }
+.wordmark { width: min(300px, 70%); color: var(--fg); }
+.tagline { font: 700 clamp(26px, 4vw, 40px)/1.12 var(--display); letter-spacing: -.015em; }
+.tagline span { color: var(--accent); }
+pre {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--frame-line); border-radius: 12px;
+  padding: 16px 18px; overflow-x: auto; font: 400 13.5px/1.65 var(--mono); color: var(--fg);
+}
+.k { color: var(--muted); } .s { color: var(--accent); }
+.c-indigo { color: #818cf8; } .c-sky { color: #38bdf8; } .c-emerald { color: #34d399; } .c-amber { color: #fbbf24; } .c-pink { color: #f472b6; }
+
+/* Anatomy */
+.anatomy { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 28px; align-items: center; }
+.anatomy-figure { position: relative; background: var(--ink); border-radius: 16px; padding: 18px; }
+.anatomy dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 18px; }
+.anatomy dt { font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.anatomy dd { margin: 0; color: var(--muted); }
+.swatch-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+
+/* Logo tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.tile { border-radius: 14px; padding: 28px; display: grid; place-items: center; min-height: 170px; border: 1px solid var(--frame-line); }
+.tile svg { width: 100%; max-height: 90px; }
+.tile.mark svg { max-height: 120px; }
+.on-ink { background: var(--ink); color: var(--paper); }
+.on-paper { background: var(--paper); color: var(--ink); }
+.on-indigo { background: var(--indigo); color: #ffffff; }
+.tile figcaption { margin-top: 14px; font: 500 12.5px/1.3 var(--mono); opacity: .7; }
+.tile figure { margin: 0; display: grid; place-items: center; width: 100%; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.rule { display: grid; gap: 6px; }
+.rule h3 { display: flex; gap: 8px; align-items: baseline; }
+.rule .tag { font: 600 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; }
+.do { color: #10b981; background: rgba(16,185,129,.12); }
+.dont { color: #f87171; background: rgba(248,113,113,.12); }
+
+/* Color */
+.palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.chip {
+  border: 1px solid var(--frame-line); border-radius: 14px; overflow: hidden; background: var(--code-bg);
+  display: grid; text-align: left; padding: 0; cursor: pointer; color: var(--fg); font: inherit;
+}
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip .fill { height: 84px; display: grid; grid-template-columns: 1fr 1fr; }
+.chip .meta { padding: 12px 14px; display: grid; gap: 2px; }
+.chip .name { font-weight: 600; }
+.chip .hex { font: 400 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.copied { color: var(--accent) !important; }
+
+/* Type */
+.type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.specimen { border: 1px solid var(--frame-line); border-radius: 14px; padding: 20px; display: grid; gap: 10px; min-width: 0; }
+.specimen .big { font-size: 34px; line-height: 1.1; overflow-wrap: anywhere; }
+.specimen .role { font: 600 11.5px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+/* Voice */
+.voice { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.lines { display: grid; gap: 10px; }
+.line { font: 600 19px/1.3 var(--display); letter-spacing: -.01em; }
+.words { display: flex; flex-wrap: wrap; gap: 8px; }
+.word { border: 1px solid var(--frame-line); border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+.word.no { text-decoration: line-through; color: var(--muted); }
+
+.card-preview { border-radius: 14px; overflow: hidden; border: 1px solid var(--frame-line); }
+.card-preview svg { display: block; width: 100%; height: auto; }
+.files { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 24px; font: 400 13px/1.7 var(--mono); color: var(--muted); }
+.files b { color: var(--fg); font-weight: 500; }
+
+@media (max-width: 760px) {
+  .hero, .anatomy { grid-template-columns: minmax(0, 1fr); }
+  .hero .icon { max-width: 280px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero .icon { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { transform: translateY(14px) scale(.97); } to { transform: none; } }
+}
+</style>
+
+<div class="wrap">
+
+  <section class="frame hero" aria-labelledby="hero-title">
+    <span class="label">rhizo · brand</span>
+    <div class="icon" role="img" aria-label="The rhizo app icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#23213a"/>
+      <stop offset="0.55" stop-color="#14131f"/>
+      <stop offset="1" stop-color="#0b0b11"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.36" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#818cf8" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="g-indigo" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292">
+      <stop offset="0" stop-color="#e0e7ff"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="g-sky" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="660" y2="512">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="g-emerald" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736">
+      <stop offset="0" stop-color="#d1fae5"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="body">
+      <rect x="100" y="100" width="824" height="824" rx="186"/>
+    </clipPath>
+  </defs>
+
+  <!-- Body: macOS-grid squircle, ink with a violet cast -->
+  <g clip-path="url(#body)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#halo)"/>
+    <!-- The canvas: a faint dot grid -->
+    <g fill="#ffffff" fill-opacity="0.055">
+      <circle cx="196" cy="196" r="5"/><circle cx="292" cy="196" r="5"/><circle cx="388" cy="196" r="5"/><circle cx="484" cy="196" r="5"/><circle cx="580" cy="196" r="5"/><circle cx="676" cy="196" r="5"/><circle cx="772" cy="196" r="5"/><circle cx="868" cy="196" r="5"/>
+      <circle cx="196" cy="292" r="5"/><circle cx="292" cy="292" r="5"/><circle cx="388" cy="292" r="5"/><circle cx="484" cy="292" r="5"/><circle cx="580" cy="292" r="5"/><circle cx="676" cy="292" r="5"/><circle cx="772" cy="292" r="5"/><circle cx="868" cy="292" r="5"/>
+      <circle cx="196" cy="388" r="5"/><circle cx="292" cy="388" r="5"/><circle cx="388" cy="388" r="5"/><circle cx="484" cy="388" r="5"/><circle cx="580" cy="388" r="5"/><circle cx="676" cy="388" r="5"/><circle cx="772" cy="388" r="5"/><circle cx="868" cy="388" r="5"/>
+      <circle cx="196" cy="484" r="5"/><circle cx="292" cy="484" r="5"/><circle cx="388" cy="484" r="5"/><circle cx="484" cy="484" r="5"/><circle cx="580" cy="484" r="5"/><circle cx="676" cy="484" r="5"/><circle cx="772" cy="484" r="5"/><circle cx="868" cy="484" r="5"/>
+      <circle cx="196" cy="580" r="5"/><circle cx="292" cy="580" r="5"/><circle cx="388" cy="580" r="5"/><circle cx="484" cy="580" r="5"/><circle cx="580" cy="580" r="5"/><circle cx="676" cy="580" r="5"/><circle cx="772" cy="580" r="5"/><circle cx="868" cy="580" r="5"/>
+      <circle cx="196" cy="676" r="5"/><circle cx="292" cy="676" r="5"/><circle cx="388" cy="676" r="5"/><circle cx="484" cy="676" r="5"/><circle cx="580" cy="676" r="5"/><circle cx="676" cy="676" r="5"/><circle cx="772" cy="676" r="5"/><circle cx="868" cy="676" r="5"/>
+      <circle cx="196" cy="772" r="5"/><circle cx="292" cy="772" r="5"/><circle cx="388" cy="772" r="5"/><circle cx="484" cy="772" r="5"/><circle cx="580" cy="772" r="5"/><circle cx="676" cy="772" r="5"/><circle cx="772" cy="772" r="5"/><circle cx="868" cy="772" r="5"/>
+      <circle cx="196" cy="868" r="5"/><circle cx="292" cy="868" r="5"/><circle cx="388" cy="868" r="5"/><circle cx="484" cy="868" r="5"/><circle cx="580" cy="868" r="5"/><circle cx="676" cy="868" r="5"/><circle cx="772" cy="868" r="5"/><circle cx="868" cy="868" r="5"/>
+    </g>
+    <rect x="100" y="100" width="824" height="824" fill="url(#rim)"/>
+  </g>
+
+  <!-- The mark: a seed sending out shoots, drawn the way rhizo draws mindmaps -->
+  <g transform="translate(-24 0)">
+    <g fill="none" stroke-linecap="round" stroke-width="38">
+      <path d="M380 512 C 500 512, 500 292, 610 292" stroke="url(#g-indigo)"/>
+      <path d="M380 512 L 660 512" stroke="url(#g-sky)"/>
+      <path d="M380 512 C 490 512, 490 736, 590 736" stroke="url(#g-emerald)"/>
+    </g>
+    <g fill="none" stroke-linecap="round" stroke-width="22">
+      <path d="M650 292 C 720 292, 718 206, 780 206" stroke="#fbbf24"/>
+      <path d="M630 736 C 700 736, 698 812, 760 812" stroke="#f472b6"/>
+    </g>
+
+    <!-- a cross-link: the moment a tree becomes a rhizome -->
+    <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+
+    <!-- glows -->
+    <g filter="url(#glow)" opacity="0.75">
+      <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+      <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+      <circle cx="626" cy="736" r="46" fill="#34d399"/>
+      <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+      <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+      <circle cx="356" cy="512" r="96" fill="#a5b4fc"/>
+    </g>
+
+    <!-- nodes -->
+    <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+    <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+    <circle cx="626" cy="736" r="46" fill="#34d399"/>
+    <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+    <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+
+    <!-- the seed -->
+    <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+    <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+  </g>
+</svg>
+</div>
+    <div class="words">
+      <div class="wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 312 110" role="img" aria-label="rhizo">
+  
+  <g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#818cf8"/>
+</svg>
+</div>
+      <h1 id="hero-title" class="tagline">Think in graphs.<br><span>Ship in any format.</span></h1>
+      <p class="muted">The mark is a rhizo document. Seed, shoots and one cross-link, drawn with the same curves the app uses for mindmaps:</p>
+<pre><span class="k">-</span> <span class="s">"seed"</span> {
+    <span class="k">-</span> <span class="c-indigo">"indigo"</span> { <span class="k">-</span> <span class="c-amber">"amber"</span> }
+    <span class="k">-</span> <span class="c-sky">"sky"</span>
+    <span class="k">-</span> <span class="c-emerald">"emerald"</span> { <span class="k">-</span> <span class="c-pink">"pink"</span> }
+}
+<span class="k">edge</span> sky pink <span class="k">line=</span>dotted <span class="k">arrow=</span>none</pre>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="idea">
+    <span class="label">Idea</span>
+    <h2 id="idea">A tree that learned to connect sideways</h2>
+    <div class="anatomy">
+      <div class="anatomy-figure" role="img" aria-label="The rhizo mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (for dark backgrounds)">
+  
+  <defs><linearGradient id="s-indigo-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#818cf8"/></linearGradient><linearGradient id="s-sky-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="666" y2="512"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient><linearGradient id="s-emerald-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>
+  <path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="url(#s-indigo-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="url(#s-sky-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="url(#s-emerald-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#fbbf24" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#f472b6" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+  <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+  <circle cx="626" cy="736" r="46" fill="#34d399"/>
+  <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+  <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+  <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+</svg>
+</div>
+      <dl>
+        <dt><span class="swatch-dot" style="background:#f8f8fc"></span>Seed</dt>
+        <dd>Where a thought starts. White with an indigo core, the same as a mindmap root in the app.</dd>
+        <dt><span class="swatch-dot" style="background:#818cf8"></span>Shoots</dt>
+        <dd>Three branches in the product's branch colors, curving out the way rhizo routes mindmap edges.</dd>
+        <dt><span class="swatch-dot" style="background:#fbbf24"></span>Sprouts</dt>
+        <dd>Smaller growth off the shoots. Ideas keep branching.</dd>
+        <dt><span class="swatch-dot" style="background:transparent;border:2px dotted #c7c7d6"></span>Cross-link</dt>
+        <dd>The dotted line between two branches. A rhizome has no fixed hierarchy: any point can connect to any other. This one line turns a tree into a graph.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="logos">
+    <span class="label">Logo</span>
+    <h2 id="logos">Lockups and marks</h2>
+    <div class="tiles">
+      <figure class="tile on-paper"><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 142" role="img" aria-label="rhizo">
+  
+  <svg x="0" y="0" viewBox="236 152 600 712"><path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="#6366f1" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="#0ea5e9" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="#10b981" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#ec4899" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#14131f" stroke-opacity="0.3" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#6366f1"/>
+  <circle cx="702" cy="512" r="46" fill="#0ea5e9"/>
+  <circle cx="626" cy="736" r="46" fill="#10b981"/>
+  <circle cx="804" cy="206" r="30" fill="#f59e0b"/>
+  <circle cx="784" cy="812" r="30" fill="#ec4899"/>
+  <circle cx="356" cy="512" r="88" fill="#14131f"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/></svg><svg x="150" y="22" width="296.4" height="104.5" viewBox="0 0 312 110"><g fill="none" stroke="#14131f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#6366f1"/></svg>
+</svg>
+<figcaption>logo-light.svg</figcaption></figure></figure>
+      <figure class="tile on-ink"><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 142" role="img" aria-label="rhizo">
+  
+  <defs><linearGradient id="s-indigo-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#818cf8"/></linearGradient><linearGradient id="s-sky-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="666" y2="512"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient><linearGradient id="s-emerald-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>
+  <svg x="0" y="0" viewBox="236 152 600 712"><path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="url(#s-indigo-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="url(#s-sky-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="url(#s-emerald-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#fbbf24" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#f472b6" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+  <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+  <circle cx="626" cy="736" r="46" fill="#34d399"/>
+  <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+  <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+  <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/></svg><svg x="150" y="22" width="296.4" height="104.5" viewBox="0 0 312 110"><g fill="none" stroke="#f8f8fc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#818cf8"/></svg>
+</svg>
+<figcaption>logo-dark.svg</figcaption></figure></figure>
+    </div>
+    <div class="tiles">
+      <figure class="tile mark on-ink"><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (for dark backgrounds)">
+  
+  <defs><linearGradient id="s-indigo-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#818cf8"/></linearGradient><linearGradient id="s-sky-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="666" y2="512"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient><linearGradient id="s-emerald-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>
+  <path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="url(#s-indigo-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="url(#s-sky-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="url(#s-emerald-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#fbbf24" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#f472b6" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+  <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+  <circle cx="626" cy="736" r="46" fill="#34d399"/>
+  <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+  <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+  <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+</svg>
+<figcaption>mark-dark.svg</figcaption></figure></figure>
+      <figure class="tile mark on-paper"><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (for light backgrounds)">
+  
+  <path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="#6366f1" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="#0ea5e9" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="#10b981" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#ec4899" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#14131f" stroke-opacity="0.3" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#6366f1"/>
+  <circle cx="702" cy="512" r="46" fill="#0ea5e9"/>
+  <circle cx="626" cy="736" r="46" fill="#10b981"/>
+  <circle cx="804" cy="206" r="30" fill="#f59e0b"/>
+  <circle cx="784" cy="812" r="30" fill="#ec4899"/>
+  <circle cx="356" cy="512" r="88" fill="#14131f"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+</svg>
+<figcaption>mark-light.svg</figcaption></figure></figure>
+      <figure class="tile mark on-indigo"><figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="236 152 600 712" role="img" aria-label="rhizo mark (one color)">
+  
+  <path d="M444 512 C 500 512, 500 292, 610 292" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M444 512 L 660 512" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M444 512 C 490 512, 490 736, 590 736" fill="none" stroke="currentColor" stroke-width="38" stroke-linecap="butt"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="currentColor"/>
+  <circle cx="702" cy="512" r="46" fill="currentColor"/>
+  <circle cx="626" cy="736" r="46" fill="currentColor"/>
+  <circle cx="804" cy="206" r="30" fill="currentColor"/>
+  <circle cx="784" cy="812" r="30" fill="currentColor"/>
+  <path fill="currentColor" fill-rule="evenodd" d="M268 512 a88 88 0 1 0 176 0 a88 88 0 1 0 -176 0 M326 512 a30 30 0 1 0 60 0 a30 30 0 1 0 -60 0"/>
+</svg>
+<figcaption>mark-mono.svg</figcaption></figure></figure>
+    </div>
+    <div class="rules">
+      <div class="rule"><h3><span class="tag do">Do</span> Keep clear space</h3><p class="muted">Leave at least the seed's diameter empty on every side of the mark.</p></div>
+      <div class="rule"><h3><span class="tag do">Do</span> Respect minimum sizes</h3><p class="muted">Mark: 16 px (use the favicon below 32 px). Lockup: 96 px wide.</p></div>
+      <div class="rule"><h3><span class="tag dont">Don't</span> Recolor the branches</h3><p class="muted">Use the color, light or one-color mark. Never swap branch hues or add gradients to the wordmark.</p></div>
+      <div class="rule"><h3><span class="tag dont">Don't</span> Drop the cross-link</h3><p class="muted">Without it the mark is just a tree. It is small on purpose, not optional.</p></div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="color">
+    <span class="label">Color</span>
+    <h2 id="color">Ink, paper and five branches</h2>
+    <p class="muted">The branch colors are the app's own theme palette, so a rhizo mindmap is on-brand by default. Each chip shows the light-theme value on the left and the dark-theme value on the right. Click a chip to copy both.</p>
+    <div class="palette" id="palette"></div>
+  </section>
+
+  <section class="frame" aria-labelledby="type">
+    <span class="label">Type</span>
+    <h2 id="type">The wordmark is drawn, not typed</h2>
+    <p class="muted">The wordmark is a monoline drawing (x-height 60, stroke 14, round caps), and the tittle on the i is a node. Never set "rhizo" in a font as a logo. In running text it is always lowercase.</p>
+    <div class="type-grid">
+      <div class="specimen"><span class="role">Display · Unbounded</span><span class="big" style="font-family:var(--display);font-weight:700">Grow the graph</span><span class="muted">Headlines and social cards. Use it sparingly.</span></div>
+      <div class="specimen"><span class="role">Text · Figtree</span><span class="big" style="font-family:var(--body);font-weight:500">Every format, one model</span><span class="muted">Docs, website and marketing copy.</span></div>
+      <div class="specimen"><span class="role">Code · JetBrains Mono</span><span class="big" style="font-family:var(--mono);font-size:26px">edge a b label="go"</span><span class="muted">Snippets, file names and tokens.</span></div>
+      <div class="specimen"><span class="role">Product UI · system sans</span><span class="big" style="font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif;font-weight:500">Customers</span><span class="muted">Inside diagrams: Inter, then the platform's sans, chosen for legibility at 12–17 px.</span></div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="voice">
+    <span class="label">Voice</span>
+    <h2 id="voice">Plain, precise, a little alive</h2>
+    <div class="voice">
+      <div class="lines">
+        <h3>Lines we use</h3>
+        <span class="line">Think in graphs. Ship in any format.</span>
+        <span class="line">Diagrams that grow roots.</span>
+        <span class="line">Write it. See it. Export it anywhere.</span>
+      </div>
+      <div class="lines">
+        <h3>How we sound</h3>
+        <p class="muted">Like a good engineer explaining their tool: concrete, short sentences, real examples over adjectives. Name formats and numbers ("renders 5,000 nodes in 0.4 s"), not vague claims ("blazing fast").</p>
+        <div class="words" aria-label="Preferred and avoided words">
+          <span class="word">graph</span><span class="word">node</span><span class="word">frame</span><span class="word">export</span><span class="word">plain text</span>
+          <span class="word no">synergy</span><span class="word no">revolutionary</span><span class="word no">AI-powered</span><span class="word no">seamless</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="frame" aria-labelledby="social">
+    <span class="label">Social</span>
+    <h2 id="social">Repository card</h2>
+    <p class="muted">1280 × 640, for the repository's social preview. Upload <code>assets/brand/png/social-card.png</code>.</p>
+    <div class="card-preview" role="img" aria-label="Social card: rhizo, think in graphs, ship in any format"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-label="rhizo: think in graphs, ship in any format">
+  
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d1b30"/><stop offset="1" stop-color="#0b0b11"/>
+    </linearGradient>
+    <radialGradient id="cardglow" cx="0.25" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.28"/><stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#card)"/>
+  <rect width="1280" height="640" fill="url(#cardglow)"/>
+  <svg x="60" y="120" width="400" height="400" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="i-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#23213a"/>
+      <stop offset="0.55" stop-color="#14131f"/>
+      <stop offset="1" stop-color="#0b0b11"/>
+    </linearGradient>
+    <radialGradient id="i-halo" cx="0.36" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#818cf8" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="i-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="i-g-indigo" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292">
+      <stop offset="0" stop-color="#e0e7ff"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="i-g-sky" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="660" y2="512">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="i-g-emerald" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736">
+      <stop offset="0" stop-color="#d1fae5"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="i-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="i-body">
+      <rect x="100" y="100" width="824" height="824" rx="186"/>
+    </clipPath>
+  </defs>
+
+  <!-- Body: macOS-grid squircle, ink with a violet cast -->
+  <g clip-path="url(#i-body)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-bg)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-halo)"/>
+    <!-- The canvas: a faint dot grid -->
+    <g fill="#ffffff" fill-opacity="0.055">
+      <circle cx="196" cy="196" r="5"/><circle cx="292" cy="196" r="5"/><circle cx="388" cy="196" r="5"/><circle cx="484" cy="196" r="5"/><circle cx="580" cy="196" r="5"/><circle cx="676" cy="196" r="5"/><circle cx="772" cy="196" r="5"/><circle cx="868" cy="196" r="5"/>
+      <circle cx="196" cy="292" r="5"/><circle cx="292" cy="292" r="5"/><circle cx="388" cy="292" r="5"/><circle cx="484" cy="292" r="5"/><circle cx="580" cy="292" r="5"/><circle cx="676" cy="292" r="5"/><circle cx="772" cy="292" r="5"/><circle cx="868" cy="292" r="5"/>
+      <circle cx="196" cy="388" r="5"/><circle cx="292" cy="388" r="5"/><circle cx="388" cy="388" r="5"/><circle cx="484" cy="388" r="5"/><circle cx="580" cy="388" r="5"/><circle cx="676" cy="388" r="5"/><circle cx="772" cy="388" r="5"/><circle cx="868" cy="388" r="5"/>
+      <circle cx="196" cy="484" r="5"/><circle cx="292" cy="484" r="5"/><circle cx="388" cy="484" r="5"/><circle cx="484" cy="484" r="5"/><circle cx="580" cy="484" r="5"/><circle cx="676" cy="484" r="5"/><circle cx="772" cy="484" r="5"/><circle cx="868" cy="484" r="5"/>
+      <circle cx="196" cy="580" r="5"/><circle cx="292" cy="580" r="5"/><circle cx="388" cy="580" r="5"/><circle cx="484" cy="580" r="5"/><circle cx="580" cy="580" r="5"/><circle cx="676" cy="580" r="5"/><circle cx="772" cy="580" r="5"/><circle cx="868" cy="580" r="5"/>
+      <circle cx="196" cy="676" r="5"/><circle cx="292" cy="676" r="5"/><circle cx="388" cy="676" r="5"/><circle cx="484" cy="676" r="5"/><circle cx="580" cy="676" r="5"/><circle cx="676" cy="676" r="5"/><circle cx="772" cy="676" r="5"/><circle cx="868" cy="676" r="5"/>
+      <circle cx="196" cy="772" r="5"/><circle cx="292" cy="772" r="5"/><circle cx="388" cy="772" r="5"/><circle cx="484" cy="772" r="5"/><circle cx="580" cy="772" r="5"/><circle cx="676" cy="772" r="5"/><circle cx="772" cy="772" r="5"/><circle cx="868" cy="772" r="5"/>
+      <circle cx="196" cy="868" r="5"/><circle cx="292" cy="868" r="5"/><circle cx="388" cy="868" r="5"/><circle cx="484" cy="868" r="5"/><circle cx="580" cy="868" r="5"/><circle cx="676" cy="868" r="5"/><circle cx="772" cy="868" r="5"/><circle cx="868" cy="868" r="5"/>
+    </g>
+    <rect x="100" y="100" width="824" height="824" fill="url(#i-rim)"/>
+  </g>
+
+  <!-- The mark: a seed sending out shoots, drawn the way rhizo draws mindmaps -->
+  <g transform="translate(-24 0)">
+    <g fill="none" stroke-linecap="round" stroke-width="38">
+      <path d="M380 512 C 500 512, 500 292, 610 292" stroke="url(#i-g-indigo)"/>
+      <path d="M380 512 L 660 512" stroke="url(#i-g-sky)"/>
+      <path d="M380 512 C 490 512, 490 736, 590 736" stroke="url(#i-g-emerald)"/>
+    </g>
+    <g fill="none" stroke-linecap="round" stroke-width="22">
+      <path d="M650 292 C 720 292, 718 206, 780 206" stroke="#fbbf24"/>
+      <path d="M630 736 C 700 736, 698 812, 760 812" stroke="#f472b6"/>
+    </g>
+
+    <!-- a cross-link: the moment a tree becomes a rhizome -->
+    <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+
+    <!-- glows -->
+    <g filter="url(#i-glow)" opacity="0.75">
+      <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+      <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+      <circle cx="626" cy="736" r="46" fill="#34d399"/>
+      <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+      <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+      <circle cx="356" cy="512" r="96" fill="#a5b4fc"/>
+    </g>
+
+    <!-- nodes -->
+    <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+    <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+    <circle cx="626" cy="736" r="46" fill="#34d399"/>
+    <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+    <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+
+    <!-- the seed -->
+    <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+    <circle cx="356" cy="512" r="30" fill="#6366f1"/>
+  </g>
+</svg>
+  <svg x="556" y="150" width="390.0" height="137.5" viewBox="0 0 312 110"><g fill="none" stroke="#f8f8fc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#818cf8"/></svg>
+  <g font-family="Inter, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="560" y="380" font-size="44" font-weight="600" fill="#f4f4f5">Think in graphs.</text>
+    <text x="560" y="432" font-size="44" font-weight="600" fill="#a5b4fc">Ship in any format.</text>
+    <rect x="560" y="460" width="92" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="606" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">Mermaid</text><rect x="661.8" y="460" width="45" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="684" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">D2</text><rect x="716.5999999999999" y="460" width="101" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="767" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">Graphviz</text><rect x="827.8" y="460" width="92" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="874" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">draw.io</text><rect x="929.5999999999999" y="460" width="64" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="961" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">OPML</text><rect x="1003.1999999999999" y="460" width="101" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="1054" y="485" text-anchor="middle" font-size="17" fill="#c7c7d6">FreeMind</text><rect x="560" y="508" width="129" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="625" y="533" text-anchor="middle" font-size="17" fill="#c7c7d6">JSON Canvas</text><rect x="699.4" y="508" width="167" height="38" rx="19" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/><text x="783" y="533" text-anchor="middle" font-size="17" fill="#c7c7d6">SVG · PNG · PDF</text>
+  </g>
+</svg>
+</div>
+    <div class="files">
+      <span><b>icon.svg</b> app icon, hand-tuned</span>
+      <span><b>rhizo.icns</b> macOS icon set</span>
+      <span><b>png/icon-16…1024.png</b> every size</span>
+      <span><b>favicon.svg</b> adapts to light/dark</span>
+      <span><b>logo-{light,dark}.svg</b> lockups</span>
+      <span><b>mark-{dark,light,mono}.svg</b> marks</span>
+      <span><b>wordmark-{light,dark}.svg</b> wordmarks</span>
+      <span><b>generate.py</b> rebuilds all derived files</span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const colors = [
+  ["Ink", "#14131f", "#14131f", "Surfaces, the dark icon body, text on paper"],
+  ["Paper", "#f8f8fc", "#f8f8fc", "Light surfaces, the seed"],
+  ["Indigo", "#6366f1", "#818cf8", "Primary accent, first branch, the seed's core"],
+  ["Sky", "#0ea5e9", "#38bdf8", "Second branch"],
+  ["Emerald", "#10b981", "#34d399", "Third branch"],
+  ["Amber", "#f59e0b", "#fbbf24", "Fourth branch, sprouts"],
+  ["Pink", "#ec4899", "#f472b6", "Sprouts, later branches"],
+];
+const host = document.getElementById("palette");
+for (const [name, light, dark, use] of colors) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.type = "button";
+  b.title = use;
+  b.setAttribute("aria-label", `${name}: ${light} light, ${dark} dark. Copy`);
+  b.innerHTML = `<span class="fill"><span style="background:${light}"></span><span style="background:${dark}"></span></span>
+    <span class="meta"><span class="name">${name}</span><span class="hex">${light}${light === dark ? "" : " · " + dark}</span></span>`;
+  b.addEventListener("click", () => {
+    const text = light === dark ? light : `${light} ${dark}`;
+    const hex = b.querySelector(".hex");
+    const done = () => { hex.textContent = "Copied"; hex.classList.add("copied");
+      setTimeout(() => { hex.textContent = light === dark ? light : `${light} · ${dark}`; hex.classList.remove("copied"); }, 1200); };
+    try {
+      navigator.clipboard.writeText(text).then(done, () => { hex.textContent = text; });
+    } catch { hex.textContent = text; }
+  });
+  host.appendChild(b);
+}
+</script>

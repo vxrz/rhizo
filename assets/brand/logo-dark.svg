@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 142" role="img" aria-label="rhizo">
+  <title>rhizo</title>
+  <defs><linearGradient id="s-indigo-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="610" y2="292"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#818cf8"/></linearGradient><linearGradient id="s-sky-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="666" y2="512"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient><linearGradient id="s-emerald-f8f8fc" gradientUnits="userSpaceOnUse" x1="380" y1="512" x2="590" y2="736"><stop offset="0" stop-color="#e0e7ff"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>
+  <svg x="0" y="0" width="120" height="142" viewBox="236 152 600 712"><path d="M380 512 C 500 512, 500 292, 610 292" fill="none" stroke="url(#s-indigo-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 L 660 512" fill="none" stroke="url(#s-sky-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M380 512 C 490 512, 490 736, 590 736" fill="none" stroke="url(#s-emerald-f8f8fc)" stroke-width="38" stroke-linecap="round"/>
+  <path d="M650 292 C 720 292, 718 206, 780 206" fill="none" stroke="#fbbf24" stroke-width="22" stroke-linecap="round"/>
+  <path d="M630 736 C 700 736, 698 812, 760 812" fill="none" stroke="#f472b6" stroke-width="22" stroke-linecap="round"/>
+  <path d="M736 548 C 790 610, 800 700, 790 770" fill="none" stroke="#f5f3ff" stroke-opacity="0.45" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <circle cx="646" cy="292" r="46" fill="#818cf8"/>
+  <circle cx="702" cy="512" r="46" fill="#38bdf8"/>
+  <circle cx="626" cy="736" r="46" fill="#34d399"/>
+  <circle cx="804" cy="206" r="30" fill="#fbbf24"/>
+  <circle cx="784" cy="812" r="30" fill="#f472b6"/>
+  <circle cx="356" cy="512" r="88" fill="#f8f8fc"/>
+  <circle cx="356" cy="512" r="30" fill="#6366f1"/></svg><svg x="150" y="22" width="296.4" height="104.5" viewBox="0 0 312 110"><g fill="none" stroke="#f8f8fc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 40 L7 100 M7 64 C7 48 17 40 33 40"/>
+    <path d="M63 10 L63 100 M63 64 C63 48 73 40 89 40 C105 40 113 48 113 64 L113 100"/>
+    <path d="M143 44 L143 100"/>
+    <path d="M173 40 L213 40 L173 100 L213 100"/>
+    <circle cx="273" cy="70" r="30"/>
+  </g>
+  <circle cx="143" cy="17" r="11" fill="#818cf8"/></svg>
+</svg>
