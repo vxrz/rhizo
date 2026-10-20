@@ -5,6 +5,7 @@
 
 pub mod draw;
 pub mod interact;
+pub mod palette;
 
 use std::collections::HashMap;
 use std::path::Path;

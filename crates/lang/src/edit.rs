@@ -349,30 +349,22 @@ impl Editor {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        let (t_start, t_end) = (tkn.span().offset(), tkn.span().offset() + tkn.span().len());
-        let t_indent = line_indent(&self.src, t_start);
-        let insert = match to {
-            Placement::Child(_) => insert_child(&self.src, tkn, &reindent(&format!("{t_indent}    "))),
-            Placement::Before(_) => {
-                let line_start = self.src[..t_start].rfind('\n').map_or(0, |i| i + 1);
-                if self.src[line_start..t_start].trim().is_empty() {
-                    Splice { start: line_start, end: line_start, text: format!("{t_indent}{}\n", reindent(&t_indent)) }
-                } else {
-                    Splice { start: t_start, end: t_start, text: format!("{}; ", reindent(&t_indent)) }
-                }
-            }
-            Placement::After(_) => {
-                let (_, le) = whole_lines(&self.src, t_start, t_end);
-                if le > t_end && self.src[t_end..le].trim().is_empty() {
-                    Splice { start: le, end: le, text: format!("{t_indent}{}\n", reindent(&t_indent)) }
-                } else {
-                    let end = self.src[t_start..t_end].trim_end().len() + t_start;
-                    Splice { start: end, end, text: format!("; {}", reindent(&t_indent)) }
-                }
-            }
-        };
-        splices.push(insert);
+        splices.push(placement_splice(&self.src, to, tkn, reindent));
         self.apply(splices)
+    }
+
+    /// Adds a sibling right after `after` and returns its id.
+    pub fn add_after(&mut self, after: &NodeId, label: &str) -> Result<NodeId, EditError> {
+        let node = self.node_or_err(after)?;
+        let Some(kn) = self.statement(after) else {
+            // An edge-created node has no statement to follow; add to its frame.
+            let frame = node.frame.clone();
+            return self.add_node(&frame, label);
+        };
+        let keyword = if string_named(kn) { "-" } else { kn.name().value() };
+        let line = format!("{keyword} {}", quoted(label));
+        let splice = placement_splice(&self.src, &Placement::After(after.clone()), kn, |_| line.clone());
+        self.apply_and_find(splice, &line)
     }
 
     // ------------------------------------------------------------------
@@ -531,6 +523,35 @@ fn whole_lines(src: &str, start: usize, end: usize) -> (usize, usize) {
             return (before.len() - 1, end);
         }
         (start, end)
+    }
+}
+
+/// Where text goes for a placement relative to `target`'s statement.
+/// `text_for` gets the indentation the text should use for nested lines.
+fn placement_splice(src: &str, to: &Placement, target: &KdlNode, text_for: impl Fn(&str) -> String) -> Splice {
+    let (t_start, t_end) = (target.span().offset(), target.span().offset() + target.span().len());
+    let t_indent = line_indent(src, t_start);
+    match to {
+        Placement::Child(_) => insert_child(src, target, &text_for(&format!("{t_indent}    "))),
+        Placement::Before(_) => {
+            let line_start = src[..t_start].rfind('\n').map_or(0, |i| i + 1);
+            if src[line_start..t_start].trim().is_empty() {
+                Splice { start: line_start, end: line_start, text: format!("{t_indent}{}\n", text_for(&t_indent)) }
+            } else {
+                Splice { start: t_start, end: t_start, text: format!("{}; ", text_for(&t_indent)) }
+            }
+        }
+        Placement::After(_) => {
+            let (_, le) = whole_lines(src, t_start, t_end);
+            let rest = src[t_end..le.max(t_end)].trim();
+            // The node ends its line (a trailing comment still counts).
+            if le > t_end && (rest.is_empty() || rest.starts_with("//")) {
+                Splice { start: le, end: le, text: format!("{t_indent}{}\n", text_for(&t_indent)) }
+            } else {
+                let end = src[t_start..t_end].trim_end().len() + t_start;
+                Splice { start: end, end, text: format!("; {}", text_for(&t_indent)) }
+            }
+        }
     }
 }
 
@@ -792,6 +813,31 @@ edge pricing build
         e.reparent(&id("a"), &Placement::After(id("other"))).unwrap();
         assert!(e.source().contains("{ - \"B\"; - \"C\" }"), "{}", e.source());
         assert!(e.source().contains("    - \"Other\"\n    - \"A\"\n"), "{}", e.source());
+    }
+
+    #[test]
+    fn add_after_inserts_right_after_the_sibling() {
+        let mut e = ed();
+        let a = e.add_after(&id("users"), "Partners").unwrap();
+        let order: Vec<&str> = e.document().nodes[&id("root")].children.iter().map(|c| c.as_str()).collect();
+        assert_eq!(order, vec!["users", a.as_str(), "pricing"]);
+        assert!(e.source().contains("    - \"Users\" { - \"Personas\"; - \"Jobs\" }\n    - \"Partners\"\n"));
+
+        let b = e.add_after(&id("personas"), "Admins").unwrap();
+        assert!(e.source().contains("{ - \"Personas\"; - \"Admins\"; - \"Jobs\" }"), "{}", e.source());
+        assert_eq!(e.document().nodes[&b].parent.as_ref(), Some(&id("users")));
+
+        let c = e.add_after(&id("pricing"), "Packaging").unwrap();
+        assert!(
+            e.source().contains("    - \"Pricing\" class=risk   // trailing comment\n    - \"Packaging\"\n"),
+            "{}",
+            e.source()
+        );
+        assert_eq!(e.document().nodes[&c].parent.as_ref(), Some(&id("root")));
+
+        // An edge-created node: the new node joins its frame.
+        let d = e.add_after(&id("ship"), "Monitor").unwrap();
+        assert_eq!(e.document().nodes[&d].frame.as_str(), "flow");
     }
 
     #[test]

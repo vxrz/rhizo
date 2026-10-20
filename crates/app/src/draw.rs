@@ -44,6 +44,25 @@ pub fn scene(d: &Diagram, fonts: &Fonts, cache: &mut FontCache) -> Scene {
     s
 }
 
+/// One line of text for overlays (labels being edited, the palette).
+/// Returns the drawn width.
+#[allow(clippy::too_many_arguments)]
+pub fn text(
+    s: &mut Scene,
+    fonts: &Fonts,
+    cache: &mut FontCache,
+    transform: Affine,
+    text: &str,
+    x: f32,
+    baseline: f32,
+    size: f32,
+    weight: u16,
+    color: Color,
+) -> f32 {
+    let mut cx = Cx { s, base: transform, fonts, cache };
+    cx.text_line(text, x, baseline, size, weight, color, false)
+}
+
 struct Cx<'a> {
     s: &'a mut Scene,
     base: Affine,
@@ -183,11 +202,20 @@ impl Cx<'_> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn text_line(&mut self, text: &str, x: f32, baseline: f32, size: f32, weight: u16, color: Color, centered: bool) {
+    fn text_line(
+        &mut self,
+        text: &str,
+        x: f32,
+        baseline: f32,
+        size: f32,
+        weight: u16,
+        color: Color,
+        centered: bool,
+    ) -> f32 {
         if text.is_empty() {
-            return;
+            return 0.0;
         }
-        let Some(shaped) = self.fonts.shape(text, size, weight) else { return };
+        let Some(shaped) = self.fonts.shape(text, size, weight) else { return 0.0 };
         let x0 = if centered { x - shaped.width / 2.0 } else { x };
         let font = self.cache.get(&shaped.font.0, shaped.font.1);
         self.s
@@ -196,6 +224,7 @@ impl Cx<'_> {
             .transform(self.base * Affine::translate((x0 as f64, baseline as f64)))
             .brush(peniko_color(color))
             .draw(Fill::NonZero, shaped.glyphs.into_iter().map(|(id, gx)| Glyph { id: id as u32, x: gx, y: 0.0 }));
+        shaped.width
     }
 }
 

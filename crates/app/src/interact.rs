@@ -95,6 +95,42 @@ pub fn free_position(d: &Diagram, doc: &Document, id: &NodeId, delta: Point) -> 
     Some(Point::new((target.x - offset.x).round(), (target.y - offset.y).round()))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dir {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+/// The node an arrow key moves the selection to: the closest one in that
+/// direction, preferring nodes in line with the current one. Stays in the
+/// current frame unless nothing there lies in that direction.
+pub fn nearest(d: &Diagram, from: &NodeId, dir: Dir) -> Option<NodeId> {
+    let start = d.nodes.iter().find(|n| &n.id == from)?;
+    best(d, start, dir, true).or_else(|| best(d, start, dir, false))
+}
+
+fn best(d: &Diagram, start: &NodeBox, dir: Dir, same_frame: bool) -> Option<NodeId> {
+    let c0 = start.rect.center();
+    d.nodes
+        .iter()
+        .filter(|n| n.id != start.id && (!same_frame || n.frame == start.frame))
+        .filter_map(|n| {
+            let c = n.rect.center();
+            let (dx, dy) = (c.x - c0.x, c.y - c0.y);
+            let (along, across) = match dir {
+                Dir::Left => (-dx, dy.abs()),
+                Dir::Right => (dx, dy.abs()),
+                Dir::Up => (-dy, dx.abs()),
+                Dir::Down => (dy, dx.abs()),
+            };
+            (along > 1.0).then_some((along + 2.0 * across, &n.id))
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, id)| id.clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,5 +202,21 @@ frame "Flow" layout=layered {
         let q = free_position(&d, &doc, &"loose".into(), Point::new(0.0, 0.0)).unwrap();
         let pinned = node(&d, "pinned").rect;
         assert_eq!((q.x - 100.0, q.y - 50.0), ((loose.x - pinned.x).round(), (loose.y - pinned.y).round()));
+    }
+
+    #[test]
+    fn arrows_walk_the_map() {
+        let (_, d) = setup();
+        let go = |from: &str, dir| nearest(&d, &from.into(), dir).map(|n| n.0);
+        // Balanced mindmap: A (with A1) on the right of Root, B on the left.
+        assert_eq!(go("a", Dir::Right), Some("a1".into()));
+        assert_eq!(go("a1", Dir::Left), Some("a".into()));
+        assert_eq!(go("root", Dir::Left), Some("b".into()));
+        // Free frame: the loose node sits below the pinned one, and the
+        // frame to the right does not steal the move.
+        assert_eq!(go("pinned", Dir::Down), Some("loose".into()));
+        // Nothing further left inside the mindmap: leave the frame? No frame
+        // lies left of it either.
+        assert_eq!(go("b", Dir::Left), None);
     }
 }
