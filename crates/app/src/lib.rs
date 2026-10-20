@@ -1,25 +1,24 @@
 //! The rhizo viewer core: document → vello scene, plus offscreen rendering.
 //!
-//! The scene is built from the same SVG `rhizo render` writes (layout →
-//! semantic SVG → usvg → vello), so the window shows exactly what the
-//! exports show, text included.
+//! Layout runs with the same font metrics the scene draws with, and
+//! [`draw`] mirrors the SVG writer, so the window matches the exports.
+
+pub mod draw;
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use rhizo_core::{Color, Theme};
 use rhizo_lang::{Report, Syntax};
 use rhizo_layout::Diagram;
 use rhizo_render::Fonts;
+pub use vello;
 use vello::wgpu;
-use vello_svg::usvg;
-pub use vello_svg::vello;
 
 /// A laid-out document, ready to draw.
 pub struct Built {
     pub scene: vello::Scene,
-    /// The laid-out diagram, moved so its bounds start at the origin.
+    /// The laid-out diagram, in its own coordinates (scene = diagram − bounds origin).
     pub diagram: Diagram,
     /// Size of the drawing in diagram units (CSS px).
     pub width: f64,
@@ -29,21 +28,12 @@ pub struct Built {
     pub nodes: usize,
 }
 
-/// Loads documents and builds scenes. Keeps font databases between reloads.
+/// Loads documents and builds scenes. Keeps fonts between reloads.
+#[derive(Default)]
 pub struct Engine {
-    /// Layout metrics, keyed by the theme's font stack.
-    measure: HashMap<&'static str, Fonts>,
-    // shortcut: vello_svg needs usvg 0.48 while rhizo-render uses 0.47, so
-    // system fonts load twice; drop when rhizo-render moves to 0.48.
-    svg_fonts: Arc<usvg::fontdb::Database>,
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        let mut db = usvg::fontdb::Database::new();
-        db.load_system_fonts();
-        Engine { measure: HashMap::new(), svg_fonts: Arc::new(db) }
-    }
+    /// Metrics and glyphs, keyed by the theme's font stack.
+    fonts: HashMap<&'static str, Fonts>,
+    glyphs: draw::FontCache,
 }
 
 impl Engine {
@@ -67,45 +57,18 @@ impl Engine {
             eprintln!("{:?}", miette::Report::new(Report::new(name, src, warnings)));
         }
         let theme = rhizo_render::theme_for(&doc, theme);
-        let fonts = self.measure.entry(theme.font_family).or_insert_with(|| Fonts::system(theme.font_family));
-        let mut diagram = rhizo_render::layout(&doc, &theme, fonts);
-        move_to_origin(&mut diagram);
-        let svg = rhizo_render::to_svg(&diagram, &Default::default());
-        // shortcut: usvg shapes every label again (~350 ms of a 5,000-node reload);
-        // draw the Diagram straight into vello with a glyph cache to get under 100 ms.
-        let opt = usvg::Options { fontdb: self.svg_fonts.clone(), ..Default::default() };
-        let tree = usvg::Tree::from_str(&svg, &opt).map_err(|e| format!("internal SVG error: {e}"))?;
-        let mut scene = vello::Scene::new();
-        vello_svg::append_tree(&mut scene, &tree);
+        let fonts = self.fonts.entry(theme.font_family).or_insert_with(|| Fonts::system(theme.font_family));
+        let diagram = rhizo_render::layout(&doc, &theme, fonts);
+        let scene = draw::scene(&diagram, fonts, &mut self.glyphs);
         Ok(Built {
             scene,
-            width: tree.size().width() as f64,
-            height: tree.size().height() as f64,
+            width: diagram.bounds.width as f64,
+            height: diagram.bounds.height as f64,
             background: theme.background,
             title: doc.title.clone(),
             nodes: doc.nodes.len(),
             diagram,
         })
-    }
-}
-
-/// shortcut: vello_svg 0.11 applies text transforms twice, so the SVG must be
-/// transform-free: a viewBox at 0,0 and no transformed groups. Drop when
-/// vello_svg fixes nested absolute transforms for text.
-fn move_to_origin(d: &mut Diagram) {
-    let (dx, dy) = (-d.bounds.x, -d.bounds.y);
-    d.bounds = d.bounds.translate(dx, dy);
-    for f in &mut d.frames {
-        f.rect = f.rect.translate(dx, dy);
-    }
-    for n in &mut d.nodes {
-        n.rect = n.rect.translate(dx, dy);
-    }
-    for e in &mut d.edges {
-        e.path = e.path.map(|p| p.offset(dx, dy));
-        if let Some(l) = &mut e.label {
-            l.center = l.center.offset(dx, dy);
-        }
     }
 }
 
@@ -171,7 +134,7 @@ pub fn render_offscreen(built: &Built, scale: f64) -> Option<(u32, u32, Vec<u8>)
     });
     device.poll(wgpu::PollType::wait_indefinitely()).ok()?;
     rx.recv().ok()?.ok()?;
-    let data = slice.get_mapped_range();
+    let data = slice.get_mapped_range().ok()?;
     let mut pixels = Vec::with_capacity((w * h * 4) as usize);
     for y in 0..h as usize {
         let start = y * row as usize;

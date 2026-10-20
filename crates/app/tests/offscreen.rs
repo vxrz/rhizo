@@ -22,7 +22,8 @@ fn check(name: &str) {
 
     // Every label is drawn inside its node: some pixels there have the text color.
     for n in built.diagram.nodes.iter().filter(|n| !n.label.is_empty()) {
-        let r = n.rect;
+        let b = built.diagram.bounds;
+        let r = n.rect.translate(-b.x, -b.y);
         let close = |p: &[u8]| p.iter().zip([n.text.r, n.text.g, n.text.b]).all(|(a, b)| a.abs_diff(b) < 48);
         let (x0, y0, x1, y1) = (r.x as u32, r.y as u32, r.right() as u32, r.bottom() as u32);
         let hits = (y0..y1.min(h))

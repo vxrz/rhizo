@@ -6,7 +6,7 @@
 pub mod fonts;
 pub mod svg;
 
-pub use fonts::Fonts;
+pub use fonts::{Fonts, Shaped};
 pub use svg::{SvgOptions, to_svg};
 
 use krilla::metadata::Metadata;

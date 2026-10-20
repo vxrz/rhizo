@@ -15,9 +15,7 @@ rhizo-core.workspace = true
 rhizo-lang.workspace = true
 rhizo-layout.workspace = true
 rhizo-render.workspace = true
-# vello_svg 0.11 is built against vello 0.10, which pins wgpu 29.
-vello = "0.10"
-vello_svg = "0.11"
+vello = "0.11"
 winit = "0.30.13"
 pollster = "1.0"
 miette = { workspace = true, features = ["fancy"] }

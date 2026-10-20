@@ -127,7 +127,7 @@ impl App {
         let mut encoder = device.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         gpu.surface.blitter.copy(&device.device, &mut encoder, &gpu.surface.target_view, &view);
         device.queue.submit([encoder.finish()]);
-        frame.present();
+        device.queue.present(frame);
     }
 
     fn set_built(&mut self, built: Built, took: Duration) {

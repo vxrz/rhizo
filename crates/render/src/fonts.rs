@@ -15,7 +15,19 @@ pub struct Fonts {
 struct Face {
     id: Option<fontdb::ID>,
     units_per_em: f32,
-    advances: HashMap<char, Option<u16>>,
+    /// Glyph id and advance per character; `None` when the font lacks it.
+    glyphs: HashMap<char, Option<(u16, u16)>>,
+    /// The font file, loaded on first [`Fonts::shape`].
+    data: Option<(Arc<Vec<u8>>, u32)>,
+}
+
+/// A line of text as positioned glyphs, measured exactly as layout measured it.
+pub struct Shaped {
+    /// The font file and its index in a collection.
+    pub font: (Arc<Vec<u8>>, u32),
+    /// Glyph id and x offset from the line start, in pixels.
+    pub glyphs: Vec<(u16, f32)>,
+    pub width: f32,
 }
 
 impl Fonts {
@@ -75,40 +87,77 @@ fn parse_family_list(css: &str) -> Vec<String> {
         .collect()
 }
 
-impl TextMeasure for Fonts {
-    fn width(&self, text: &str, font_size: f32, font_weight: u16) -> f32 {
+/// Per character: glyph id and advance in font units, or `None`.
+type Run = (f32, Vec<Option<(u16, u16)>>, Option<(Arc<Vec<u8>>, u32)>);
+
+impl Fonts {
+    fn run(&self, text: &str, font_weight: u16, with_data: bool) -> Option<Run> {
         let bucket = (font_weight / 100).clamp(1, 9) * 100;
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
         let face = cache.entry(bucket).or_insert_with(|| Face {
             id: self.query(bucket),
             units_per_em: 1000.0,
-            advances: HashMap::new(),
+            glyphs: HashMap::new(),
+            data: None,
         });
-        let Some(id) = face.id else {
-            return rhizo_layout::Heuristic.width(text, font_size, font_weight);
-        };
-        if text.chars().any(|c| !face.advances.contains_key(&c)) {
-            let missing: Vec<char> = text.chars().filter(|c| !face.advances.contains_key(c)).collect();
+        let id = face.id?;
+        if text.chars().any(|c| !face.glyphs.contains_key(&c)) {
+            let missing: Vec<char> = text.chars().filter(|c| !face.glyphs.contains_key(c)).collect();
             let found = self.db.with_face_data(id, |data, index| {
                 let parsed = ttf_parser::Face::parse(data, index).ok()?;
                 let upem = parsed.units_per_em() as f32;
-                let adv: Vec<(char, Option<u16>)> = missing
+                let glyphs: Vec<(char, Option<(u16, u16)>)> = missing
                     .iter()
-                    .map(|&c| (c, parsed.glyph_index(c).and_then(|g| parsed.glyph_hor_advance(g))))
+                    .map(|&c| {
+                        let g = parsed.glyph_index(c);
+                        (c, g.and_then(|g| Some((g.0, parsed.glyph_hor_advance(g)?))))
+                    })
                     .collect();
-                Some((upem, adv))
+                Some((upem, glyphs))
             });
-            if let Some(Some((upem, adv))) = found {
+            if let Some(Some((upem, glyphs))) = found {
                 face.units_per_em = upem;
-                face.advances.extend(adv);
+                face.glyphs.extend(glyphs);
             } else {
-                face.advances.extend(missing.into_iter().map(|c| (c, None)));
+                face.glyphs.extend(missing.into_iter().map(|c| (c, None)));
             }
         }
-        let upem = face.units_per_em;
+        if with_data && face.data.is_none() {
+            face.data = self.db.with_face_data(id, |data, index| (Arc::new(data.to_vec()), index));
+        }
+        let glyphs = text.chars().map(|c| face.glyphs.get(&c).copied().flatten()).collect();
+        Some((face.units_per_em, glyphs, face.data.clone()))
+    }
+
+    /// Positions the glyphs of one line with the same advances [`TextMeasure`]
+    /// reports, so drawn text fits the boxes layout made for it.
+    pub fn shape(&self, text: &str, font_size: f32, font_weight: u16) -> Option<Shaped> {
+        let (upem, run, font) = self.run(text, font_weight, true)?;
+        let mut x = 0.0;
+        let mut glyphs = Vec::with_capacity(run.len());
+        for (c, g) in text.chars().zip(run) {
+            // shortcut: characters missing from the font draw as .notdef (no
+            // fallback font, no kerning); fine for Latin labels, upgrade with parley.
+            let (id, advance) = match g {
+                Some((id, adv)) => (id, adv as f32 / upem * font_size),
+                None => (0, rhizo_layout::Heuristic.width(&c.to_string(), font_size, font_weight)),
+            };
+            glyphs.push((id, x));
+            x += advance;
+        }
+        Some(Shaped { font: font?, glyphs, width: x })
+    }
+}
+
+impl TextMeasure for Fonts {
+    fn width(&self, text: &str, font_size: f32, font_weight: u16) -> f32 {
+        let Some((upem, run, _)) = self.run(text, font_weight, false) else {
+            return rhizo_layout::Heuristic.width(text, font_size, font_weight);
+        };
         text.chars()
-            .map(|c| match face.advances.get(&c).copied().flatten() {
-                Some(a) => a as f32 / upem * font_size,
+            .zip(run)
+            .map(|(c, g)| match g {
+                Some((_, adv)) => adv as f32 / upem * font_size,
                 // Not in this font; the renderer will fall back. Guess.
                 None => rhizo_layout::Heuristic.width(&c.to_string(), font_size, font_weight),
             })
