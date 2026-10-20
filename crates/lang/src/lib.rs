@@ -45,14 +45,20 @@ pub fn parse(src: &str, syntax: Syntax) -> (ast::File, Vec<Diagnostic>) {
     match syntax {
         Syntax::Kdl => kdl::parse(src),
         Syntax::Json => match serde_json::from_str(src) {
-            Ok(f) => (f, Vec::new()),
+            Ok(f) => {
+                let d = unknown_keys(&f);
+                (f, d)
+            }
             Err(e) => {
                 let offset = offset_of(src, e.line(), e.column());
                 (ast::File::default(), vec![Diagnostic::error(strip_position(&e.to_string()), Some((offset, 0)))])
             }
         },
         Syntax::Yaml => match serde_yaml_ng::from_str(src) {
-            Ok(f) => (f, Vec::new()),
+            Ok(f) => {
+                let d = unknown_keys(&f);
+                (f, d)
+            }
             Err(e) => {
                 let span = e.location().map(|l| (l.index(), 0));
                 (ast::File::default(), vec![Diagnostic::error(strip_position(&e.to_string()), span)])
@@ -96,6 +102,49 @@ fn offset_of(src: &str, line: usize, col: usize) -> usize {
 }
 
 /// serde appends " at line X column Y"; the span already says that.
+const STYLE_KEYS: &[&str] = &["fill", "stroke", "text", "stroke-width", "font-size", "font-weight", "line", "shape"];
+const NODE_KEYS: &[&str] =
+    &["label", "id", "class", "x", "y", "note", "link", "tags", "type", "props", "ports", "accept", "prov", "children"];
+const EDGE_KEYS: &[&str] =
+    &["from", "to", "label", "arrow", "class", "id", "type", "kind", "from-port", "to-port", "props", "prov"];
+const FRAME_KEYS: &[&str] =
+    &["id", "label", "layout", "direction", "x", "y", "columns", "type", "props", "nodes", "edges"];
+
+/// JSON and YAML objects that carried keys the schema does not know. These
+/// used to be dropped silently; now they are errors, like in KDL.
+fn unknown_keys(file: &ast::File) -> Vec<Diagnostic> {
+    fn report(what: &str, extra: &ast::Extra, known: &[&str], out: &mut Vec<Diagnostic>) {
+        for key in extra.keys() {
+            let mut d = Diagnostic::error(format!("unknown {what} key `{key}`"), None);
+            let all = known.iter().chain(STYLE_KEYS).copied();
+            d.help = Some(match diag::suggest(key, all) {
+                Some(close) => format!("did you mean `{close}`?"),
+                None => format!("known keys: {}", known.join(", ")),
+            });
+            out.push(d);
+        }
+    }
+    fn nodes(list: &[ast::NodeDef], out: &mut Vec<Diagnostic>) {
+        for n in list {
+            report("node", &n.extra, NODE_KEYS, out);
+            nodes(&n.children, out);
+        }
+    }
+    let mut out = Vec::new();
+    nodes(&file.nodes, &mut out);
+    for e in &file.edges {
+        report("edge", &e.extra, EDGE_KEYS, &mut out);
+    }
+    for f in &file.frames {
+        report("frame", &f.extra, FRAME_KEYS, &mut out);
+        nodes(&f.nodes, &mut out);
+        for e in &f.edges {
+            report("edge", &e.extra, EDGE_KEYS, &mut out);
+        }
+    }
+    out
+}
+
 fn strip_position(msg: &str) -> String {
     match msg.rfind(" at line ") {
         Some(i) => msg[..i].to_string(),

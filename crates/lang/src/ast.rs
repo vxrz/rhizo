@@ -5,7 +5,7 @@
 use std::fmt;
 
 use indexmap::IndexMap;
-use rhizo_core::{Arrow, Direction, LayoutKind, Style};
+use rhizo_core::{Arrow, Direction, EdgeKind, KitRef, LayoutKind, Port, Props, Prov, Style};
 use schemars::JsonSchema;
 use serde::de::{self, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -14,10 +14,17 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// positions (KDL). Never serialized.
 pub type Span = Option<(usize, usize)>;
 
+/// Keys an object had that the schema does not know. Collected instead of
+/// silently dropped, and reported by [`crate::parse`].
+pub type Extra = IndexMap<String, serde_json::Value>;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 #[schemars(title = "rhizo document")]
 pub struct File {
+    /// Format version. Required (`2`) when typed features are used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rhizo: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// `light`, `dark` or `paper`.
@@ -28,6 +35,15 @@ pub struct File {
     pub layout: Option<LayoutKind>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub direction: Option<Direction>,
+    /// Kits the document uses.
+    #[serde(rename = "use", default, skip_serializing_if = "Vec::is_empty")]
+    pub kits: Vec<KitRef>,
+    /// Base IRI for local ids.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<String>,
+    /// CURIE prefixes, e.g. `HP: http://purl.obolibrary.org/obo/HP_`.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub prefixes: IndexMap<String, String>,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub styles: IndexMap<String, Style>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -55,12 +71,19 @@ pub struct FrameDef {
     pub y: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub columns: Option<u32>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<String>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
     #[serde(flatten)]
     pub style: Style,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub nodes: Vec<NodeDef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub edges: Vec<EdgeDef>,
+    #[serde(flatten, skip_serializing)]
+    #[schemars(skip)]
+    pub extra: Extra,
     #[serde(skip)]
     #[schemars(skip)]
     pub span: Span,
@@ -89,8 +112,23 @@ pub struct NodeDef {
     pub link: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    /// Namespaced type, e.g. `aws.s3.bucket`. Needs `"rhizo": 2`.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<String>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<Port>,
+    /// Acceptance criteria.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub accept: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prov: Option<Prov>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<NodeDef>,
+    #[serde(flatten, skip_serializing)]
+    #[schemars(skip)]
+    pub extra: Extra,
     #[serde(skip)]
     #[schemars(skip)]
     pub span: Span,
@@ -101,9 +139,40 @@ impl NodeDef {
         NodeDef { label: label.into(), ..Default::default() }
     }
 
+    pub fn is_typed(&self) -> bool {
+        self.ty.is_some()
+            || !self.props.is_empty()
+            || !self.ports.is_empty()
+            || !self.accept.is_empty()
+            || self.prov.is_some()
+    }
+
     fn is_label_only(&self) -> bool {
-        let NodeDef { label: _, id, class, style, x, y, note, link, tags, children, span: _ } = self;
-        id.is_none()
+        let NodeDef {
+            label: _,
+            id,
+            class,
+            style,
+            x,
+            y,
+            note,
+            link,
+            tags,
+            ty,
+            props,
+            ports,
+            accept,
+            prov,
+            children,
+            extra: _,
+            span: _,
+        } = self;
+        ty.is_none()
+            && props.is_empty()
+            && ports.is_empty()
+            && accept.is_empty()
+            && prov.is_none()
+            && id.is_none()
             && class.is_empty()
             && style.is_empty()
             && x.is_none()
@@ -131,12 +200,41 @@ pub struct EdgeDef {
     pub class: Vec<String>,
     #[serde(flatten)]
     pub style: Style,
+    /// Optional id, unique across nodes and edges.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The predicate, e.g. `skos:broader`.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<EdgeKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_port: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_port: Option<String>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prov: Option<Prov>,
+    #[serde(flatten, skip_serializing)]
+    #[schemars(skip)]
+    pub extra: Extra,
     #[serde(skip)]
     #[schemars(skip)]
     pub span: Span,
 }
 
 impl EdgeDef {
+    pub fn is_typed(&self) -> bool {
+        self.id.is_some()
+            || self.ty.is_some()
+            || self.kind.is_some()
+            || self.from_port.is_some()
+            || self.to_port.is_some()
+            || !self.props.is_empty()
+            || self.prov.is_some()
+    }
+
     pub fn new(from: impl Into<String>, to: impl Into<String>) -> Self {
         EdgeDef { from: from.into(), to: to.into(), ..Default::default() }
     }
@@ -161,7 +259,10 @@ impl EdgeDef {
     }
 
     fn shorthand(&self) -> Option<String> {
-        let EdgeDef { from, to, label, arrow, class, style, span: _ } = self;
+        if self.is_typed() {
+            return None;
+        }
+        let EdgeDef { from, to, label, arrow, class, style, .. } = self;
         if label.is_some()
             || !class.is_empty()
             || !style.is_empty()
@@ -238,5 +339,21 @@ impl<'de> Deserialize<'de> for EdgeDef {
             }
         }
         d.deserialize_any(V)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unknown_keys_are_captured_not_dropped() {
+        let n: NodeDef =
+            serde_json::from_str(r##"{"label":"A","fill":"#fff","colour":"red","type":"aws.s3.bucket"}"##).unwrap();
+        assert_eq!(n.ty.as_deref(), Some("aws.s3.bucket"));
+        assert!(n.style.fill.is_some());
+        assert_eq!(n.extra.keys().collect::<Vec<_>>(), vec!["colour"]);
+        let e: EdgeDef = serde_json::from_str(r#"{"from":"a","to":"b","lable":"x"}"#).unwrap();
+        assert_eq!(e.extra.keys().collect::<Vec<_>>(), vec!["lable"]);
     }
 }

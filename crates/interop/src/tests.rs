@@ -177,3 +177,37 @@ fn format_names() {
     assert_eq!(Format::from_name("obsidian"), Some(Format::JsonCanvas));
     assert!(!Format::D2.can_import());
 }
+
+const TYPED: &str = r#"rhizo version=2
+node "Fn" id=fn type=aws.lambda.function { props memory-mb=512 }
+node "Bucket" id=bucket type=aws.s3.bucket
+edge fn bucket kind=data id=fn-write { props access="write" }
+edge fn bucket
+"#;
+
+#[test]
+fn typed_data_survives_graphml_and_drawio() {
+    let (doc, _) = import(TYPED, Format::Rhizo).unwrap();
+    let graphml = out(&doc, Format::GraphMl);
+    roxmltree::Document::parse(&graphml).unwrap();
+    assert!(graphml.contains(r#"<data key="type">aws.lambda.function</data>"#));
+    assert!(graphml.contains(r#"<data key="props">{&quot;memory-mb&quot;:512}</data>"#));
+    assert!(graphml.contains(r#"<data key="eid">fn-write</data>"#));
+    assert!(graphml.contains(r#"<data key="ekind">data</data>"#));
+    // The second, plain edge between the same nodes gets no typed data.
+    assert_eq!(graphml.matches("<data key=\"ekind\">").count(), 1);
+
+    let drawio = out(&doc, Format::DrawIo);
+    roxmltree::Document::parse(&drawio).unwrap();
+    assert!(drawio.contains(r#"rhizo-type="aws.s3.bucket""#));
+    assert!(drawio.contains(r#"rhizo-id="fn-write" rhizo-kind="data""#));
+}
+
+#[test]
+fn lossy_formats_warn_once() {
+    let (doc, _) = import(TYPED, Format::Rhizo).unwrap();
+    assert!(crate::dropped_features(&doc, Format::Mermaid).is_some());
+    assert!(crate::dropped_features(&doc, Format::GraphMl).is_none());
+    assert!(crate::dropped_features(&doc, Format::Svg).is_none());
+    assert!(crate::dropped_features(&sample(), Format::Mermaid).is_none());
+}

@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use rhizo_core::{Arrow, Color, Document, LayoutKind, LineStyle, Point, Rect, Shape};
+use rhizo_core::{Arrow, Color, Document, Edge, LayoutKind, LineStyle, Point, Rect, Shape};
 use rhizo_lang::Diagnostic;
 use rhizo_lang::ast::{EdgeDef, File, FrameDef, NodeDef};
 use rhizo_layout::{Diagram, EdgeKind};
@@ -225,6 +225,37 @@ fn canvas_color(c: &str) -> Option<Color> {
     })
 }
 
+/// The document edge behind each drawn link, matched per (from, to) pair in
+/// document order. Every layout pass keeps that order within a pair.
+fn edge_sources<'a>(doc: &'a Document, d: &Diagram) -> Vec<Option<&'a Edge>> {
+    let mut queues: HashMap<(&str, &str), std::collections::VecDeque<&Edge>> = HashMap::new();
+    for e in &doc.edges {
+        queues.entry((e.from.as_str(), e.to.as_str())).or_default().push_back(e);
+    }
+    d.edges
+        .iter()
+        .map(|eb| match eb.kind {
+            EdgeKind::Link => queues.get_mut(&(eb.from.as_str(), eb.to.as_str())).and_then(|q| q.pop_front()),
+            EdgeKind::Branch => None,
+        })
+        .collect()
+}
+
+/// draw.io attributes carrying rhizo's typed data, empty for plain items.
+fn typed_attrs(ty: Option<&str>, kind: Option<&str>, id: Option<&str>, props: &rhizo_core::Props) -> String {
+    let mut out = String::new();
+    for (k, v) in [("rhizo-id", id), ("rhizo-type", ty), ("rhizo-kind", kind)] {
+        if let Some(v) = v {
+            let _ = write!(out, " {k}=\"{}\"", xml(v));
+        }
+    }
+    if !props.is_empty() {
+        let json = serde_json::to_string(props).expect("props serialize");
+        let _ = write!(out, " rhizo-props=\"{}\"", xml(&json));
+    }
+    out
+}
+
 // ------------------------------------------------------------- draw.io ----
 
 pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
@@ -283,7 +314,9 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
             Some(r) => (format!("f-{}", n.frame), r.x, r.y),
             None => ("1".to_string(), 0.0, 0.0),
         };
-        let has_extra = !link.is_empty() || !tooltip.is_empty();
+        let node = &doc.nodes[&n.id];
+        let typed = typed_attrs(node.ty.as_ref().map(|t| t.as_str()), None, None, &node.props);
+        let has_extra = !link.is_empty() || !tooltip.is_empty() || !typed.is_empty();
         let style = format!(
             "{shape}whiteSpace=wrap;html=1;fillColor={};strokeColor={};fontColor={};fontSize={};strokeWidth={};{dashed}{bold}",
             if n.shape == Shape::Text { "none".into() } else { n.fill.to_hex_rgb() },
@@ -300,10 +333,10 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
             n.rect.height.round()
         );
         if has_extra {
-            // Links and tooltips live on a wrapping <UserObject>.
+            // Links, tooltips and typed data live on a wrapping <UserObject>.
             let _ = writeln!(
                 s,
-                "        <UserObject id=\"n-{}\" label=\"{}\"{link}{tooltip}>",
+                "        <UserObject id=\"n-{}\" label=\"{}\"{link}{tooltip}{typed}>",
                 xml(n.id.as_str()),
                 html(&n.label)
             );
@@ -323,6 +356,7 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
             );
         }
     }
+    let sources = edge_sources(doc, d);
     for (i, e) in d.edges.iter().enumerate() {
         let start = if e.arrow.at_start() { "startArrow=classic;" } else { "startArrow=none;" };
         let end = if e.arrow.at_end() { "endArrow=classic;" } else { "endArrow=none;" };
@@ -338,17 +372,37 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
                 Some(LayoutKind::Layered) => "edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;",
                 _ => "curved=1;",
             };
-        let _ = writeln!(
-            s,
-            "        <mxCell id=\"e-{}\" value=\"{}\" style=\"{routing}html=1;strokeColor={};strokeWidth={};fontColor={};{start}{end}{dashed}\" edge=\"1\" parent=\"1\" source=\"n-{}\" target=\"n-{}\"><mxGeometry relative=\"1\" as=\"geometry\"/></mxCell>",
-            i + 1,
-            html(&e.label.as_ref().map(|l| l.lines.join("\n")).unwrap_or_default()),
+        let label = html(&e.label.as_ref().map(|l| l.lines.join("\n")).unwrap_or_default());
+        let style = format!(
+            "{routing}html=1;strokeColor={};strokeWidth={};fontColor={};{start}{end}{dashed}",
             e.color.to_hex_rgb(),
             e.width,
-            e.label.as_ref().map_or(e.color, |l| l.color).to_hex_rgb(),
-            xml(e.from.as_str()),
-            xml(e.to.as_str())
+            e.label.as_ref().map_or(e.color, |l| l.color).to_hex_rgb()
         );
+        let ends = format!("source=\"n-{}\" target=\"n-{}\"", xml(e.from.as_str()), xml(e.to.as_str()));
+        let geometry = "<mxGeometry relative=\"1\" as=\"geometry\"/>";
+        let typed = sources[i]
+            .map(|src| {
+                typed_attrs(
+                    src.ty.as_ref().map(|t| t.as_str()),
+                    src.kind.map(|k| k.name()),
+                    src.id.as_ref().map(|i| i.as_str()),
+                    &src.props,
+                )
+            })
+            .unwrap_or_default();
+        if typed.is_empty() {
+            let _ = writeln!(
+                s,
+                "        <mxCell id=\"e-{}\" value=\"{label}\" style=\"{style}\" edge=\"1\" parent=\"1\" {ends}>{geometry}</mxCell>",
+                i + 1
+            );
+        } else {
+            let _ = writeln!(s, "        <UserObject id=\"e-{}\" label=\"{label}\"{typed}>", i + 1);
+            let _ =
+                writeln!(s, "          <mxCell style=\"{style}\" edge=\"1\" parent=\"1\" {ends}>{geometry}</mxCell>");
+            s.push_str("        </UserObject>\n");
+        }
     }
     s.push_str("      </root>\n    </mxGraphModel>\n  </diagram>\n</mxfile>\n");
     s
@@ -376,6 +430,20 @@ pub fn graphml_export(doc: &Document, d: &Diagram) -> String {
     ] {
         let _ = writeln!(s, "  <key id=\"{id}\" for=\"{for_}\" attr.name=\"{name}\" attr.type=\"{ty}\"/>");
     }
+    // Typed keys only when used, so plain exports stay byte-identical.
+    let typed = doc.is_typed();
+    if typed {
+        for (id, for_, name) in [
+            ("type", "node", "type"),
+            ("props", "node", "props"),
+            ("eid", "edge", "id"),
+            ("etype", "edge", "type"),
+            ("ekind", "edge", "semantic-kind"),
+            ("eprops", "edge", "props"),
+        ] {
+            let _ = writeln!(s, "  <key id=\"{id}\" for=\"{for_}\" attr.name=\"{name}\" attr.type=\"string\"/>");
+        }
+    }
     let _ = writeln!(s, "  <graph id=\"{}\" edgedefault=\"directed\">", xml(doc.title.as_deref().unwrap_or("rhizo")));
     for n in &d.nodes {
         let node = &doc.nodes[&n.id];
@@ -397,8 +465,15 @@ pub fn graphml_export(doc: &Document, d: &Diagram) -> String {
         data("height", &n.rect.height.round().to_string());
         data("fill", &n.fill.to_hex_rgb());
         data("shape", n.shape.name());
+        if let Some(t) = &node.ty {
+            data("type", t.as_str());
+        }
+        if !node.props.is_empty() {
+            data("props", &serde_json::to_string(&node.props).expect("props serialize"));
+        }
         s.push_str("    </node>\n");
     }
+    let sources = edge_sources(doc, d);
     for (i, e) in d.edges.iter().enumerate() {
         let _ = writeln!(
             s,
@@ -413,6 +488,22 @@ pub fn graphml_export(doc: &Document, d: &Diagram) -> String {
         let kind = if e.kind == EdgeKind::Branch { "child" } else { "link" };
         let _ = writeln!(s, "      <data key=\"kind\">{kind}</data>");
         let _ = writeln!(s, "      <data key=\"color\">{}</data>", e.color.to_hex_rgb());
+        if let Some(src) = sources[i].filter(|_| typed) {
+            let fields = [
+                ("eid", src.id.as_ref().map(|v| v.to_string())),
+                ("etype", src.ty.as_ref().map(|v| v.to_string())),
+                ("ekind", src.kind.map(|k| k.name().to_string())),
+                (
+                    "eprops",
+                    (!src.props.is_empty()).then(|| serde_json::to_string(&src.props).expect("props serialize")),
+                ),
+            ];
+            for (k, v) in fields {
+                if let Some(v) = v {
+                    let _ = writeln!(s, "      <data key=\"{k}\">{}</data>", xml(&v));
+                }
+            }
+        }
         s.push_str("    </edge>\n");
     }
     s.push_str("  </graph>\n</graphml>\n");

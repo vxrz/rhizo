@@ -21,18 +21,23 @@
 
 use kdl::{KdlDocument, KdlEntry, KdlNode, KdlValue};
 use miette::SourceSpan;
-use rhizo_core::{Arrow, Color, Direction, LayoutKind, LineStyle, Shape, Style};
+use rhizo_core::{
+    Arrow, Citation, Color, Confidence, Direction, EdgeKind, KitRef, LayoutKind, LineStyle, Port, PortDir, PortName,
+    Props, Prov, ProvMethod, Review, ReviewStatus, Shape, Style,
+};
+use serde_json::Value;
 
 use crate::ast::{EdgeDef, File, FrameDef, NodeDef, Span};
 use crate::diag::{Diagnostic, suggest};
 
-pub const FORMAT_VERSION: i128 = 1;
+pub const FORMAT_VERSION: i128 = 2;
 
-const TOP_LEVEL: &[&str] = &["rhizo", "title", "theme", "layout", "direction", "style", "frame", "node", "-", "edge"];
+const TOP_LEVEL: &[&str] =
+    &["rhizo", "title", "theme", "layout", "direction", "use", "base", "prefix", "style", "frame", "node", "-", "edge"];
 const STYLE_PROPS: &[&str] = &["fill", "stroke", "text", "stroke-width", "font-size", "font-weight", "line", "shape"];
-const NODE_PROPS: &[&str] = &["id", "label", "class", "x", "y", "note", "link", "tags"];
-const EDGE_PROPS: &[&str] = &["label", "arrow", "class"];
-const FRAME_PROPS: &[&str] = &["id", "label", "layout", "direction", "x", "y", "columns"];
+const NODE_PROPS: &[&str] = &["id", "label", "class", "x", "y", "note", "link", "tags", "type"];
+const EDGE_PROPS: &[&str] = &["label", "arrow", "class", "id", "type", "kind", "from-port", "to-port"];
+const FRAME_PROPS: &[&str] = &["id", "label", "layout", "direction", "x", "y", "columns", "type"];
 
 /// Parses KDL source. Returns the AST and every diagnostic; the AST is only
 /// meaningful when no diagnostic is an error.
@@ -203,7 +208,39 @@ impl Parser {
                 continue;
             }
             match name {
-                "rhizo" => self.header(node),
+                "rhizo" => file.rhizo = self.header(node),
+                "use" => {
+                    let e = entries(node);
+                    let kit = e.args.first().and_then(|a| self.string(a));
+                    let mut version = None;
+                    for (key, entry) in e.props {
+                        match key {
+                            "version" => version = self.string(entry),
+                            other => self.unknown("`use` property", other, entry.span(), &["version"]),
+                        }
+                    }
+                    match kit {
+                        Some(kit) if e.args.len() == 1 => file.kits.push(KitRef { kit, version }),
+                        _ => {
+                            self.err("`use` takes one kit name", node.span()).help =
+                                Some("use infra version=\"0.1\"".into());
+                        }
+                    }
+                }
+                "base" => file.base = self.single_string(node),
+                "prefix" => {
+                    let e = entries(node);
+                    let pair: Vec<String> = e.args.iter().filter_map(|a| self.string(a)).collect();
+                    match pair.as_slice() {
+                        [name, iri] if e.props.is_empty() => {
+                            file.prefixes.insert(name.clone(), iri.clone());
+                        }
+                        _ => {
+                            self.err("`prefix` takes a name and an IRI", node.span()).help =
+                                Some("prefix HP \"http://purl.obolibrary.org/obo/HP_\"".into());
+                        }
+                    }
+                }
                 "title" => file.title = self.single_string(node),
                 "theme" => file.theme = self.single_string(node),
                 "layout" => {
@@ -237,11 +274,12 @@ impl Parser {
         file
     }
 
-    fn header(&mut self, node: &KdlNode) {
+    fn header(&mut self, node: &KdlNode) -> Option<u32> {
+        let mut version = None;
         for (key, e) in entries(node).props {
             match key {
                 "version" => match e.value() {
-                    KdlValue::Integer(v) if *v == FORMAT_VERSION => {}
+                    KdlValue::Integer(v) if (1..=FORMAT_VERSION).contains(v) => version = Some(*v as u32),
                     KdlValue::Integer(v) if *v > FORMAT_VERSION => {
                         self.err(format!("this file needs rhizo format version {v}"), e.span()).help =
                             Some(format!("this build reads version {FORMAT_VERSION}; upgrade rhizo"));
@@ -253,6 +291,7 @@ impl Parser {
                 other => self.unknown("header property", other, e.span(), &["version"]),
             }
         }
+        version
     }
 
     fn single<'n>(&mut self, node: &'n KdlNode) -> Option<&'n KdlEntry> {
@@ -309,6 +348,7 @@ impl Parser {
                 "x" => f.x = self.number(entry),
                 "y" => f.y = self.number(entry),
                 "columns" => f.columns = self.uint(entry),
+                "type" => f.ty = self.string(entry),
                 _ if self.style_prop(&mut f.style, key, entry) => {}
                 other => {
                     let known: Vec<&str> = FRAME_PROPS.iter().chain(STYLE_PROPS).copied().collect();
@@ -325,7 +365,10 @@ impl Parser {
             match name {
                 "node" | "-" => f.nodes.extend(self.node(child, None)),
                 "edge" => f.edges.extend(self.edge(child)),
-                other => self.unknown("statement in frame", other, child.name().span(), &["node", "-", "edge"]),
+                "props" => f.props = self.props(child),
+                other => {
+                    self.unknown("statement in frame", other, child.name().span(), &["node", "-", "edge", "props"])
+                }
             }
         }
         Some(f)
@@ -354,6 +397,7 @@ impl Parser {
                 "note" => n.note = self.string(entry),
                 "link" => n.link = self.string(entry),
                 "tags" => n.tags = self.list(entry),
+                "type" => n.ty = self.string(entry),
                 _ if self.style_prop(&mut n.style, key, entry) => {}
                 other => {
                     let known: Vec<&str> = NODE_PROPS.iter().chain(STYLE_PROPS).copied().collect();
@@ -376,10 +420,19 @@ impl Parser {
                         (a, b) => a.or(b),
                     };
                 }
+                "props" => n.props = self.props(child),
+                "port" => n.ports.extend(self.port(child)),
+                "accept" => n.accept.extend(self.single_string(child)),
+                "prov" => n.prov = self.prov(child),
                 "edge" => {
                     self.err("edges go in a frame or at the top level, not inside a node", child.span());
                 }
-                other => self.unknown("statement in node", other, child.name().span(), &["node", "-", "note"]),
+                other => self.unknown(
+                    "statement in node",
+                    other,
+                    child.name().span(),
+                    &["node", "-", "note", "props", "port", "accept", "prov"],
+                ),
             }
         }
         match label {
@@ -409,6 +462,14 @@ impl Parser {
                     template.arrow = self.keyword(entry, "arrow", Arrow::parse, &["none", "end", "start", "both"])
                 }
                 "class" => template.class = self.list(entry),
+                "id" => template.id = self.string(entry),
+                "type" => template.ty = self.string(entry),
+                "kind" => {
+                    template.kind =
+                        self.keyword(entry, "edge kind", EdgeKind::parse, &["data", "control", "dependency"])
+                }
+                "from-port" => template.from_port = self.string(entry),
+                "to-port" => template.to_port = self.string(entry),
                 _ if self.style_prop(&mut template.style, key, entry) => {}
                 other => {
                     let known: Vec<&str> = EDGE_PROPS.iter().chain(STYLE_PROPS).copied().collect();
@@ -416,10 +477,251 @@ impl Parser {
                 }
             }
         }
-        self.no_children(node);
+        for child in node.children().map(|c| c.nodes()).unwrap_or_default() {
+            match child.name().value() {
+                "props" => template.props = self.props(child),
+                "prov" => template.prov = self.prov(child),
+                other => self.unknown("statement in edge", other, child.name().span(), &["props", "prov"]),
+            }
+        }
+        if template.id.is_some() && ends.len() > 2 {
+            self.err("an edge path (`edge a b c`) cannot share one id", node.span()).help =
+                Some("write one `edge` per id".into());
+        }
         ends.windows(2)
             .map(|w| EdgeDef { from: w[0].0.clone(), to: w[1].0.clone(), span: span(node.span()), ..template.clone() })
             .collect()
+    }
+}
+
+impl Parser {
+    /// A `props` block: a JSON object in strict JSON-in-KDL (JiK 4.0.0) form.
+    fn props(&mut self, node: &KdlNode) -> Props {
+        match self.jik_object(node) {
+            Some(map) => map.into_iter().collect(),
+            None => Props::new(),
+        }
+    }
+
+    fn jik_scalar(&mut self, e: &KdlEntry) -> Option<Value> {
+        Some(match e.value() {
+            KdlValue::String(s) => Value::String(s.clone()),
+            KdlValue::Bool(b) => Value::Bool(*b),
+            KdlValue::Null => Value::Null,
+            KdlValue::Integer(i) => match (i64::try_from(*i), u64::try_from(*i)) {
+                (Ok(v), _) => Value::from(v),
+                (_, Ok(v)) => Value::from(v),
+                _ => Value::from(*i as f64),
+            },
+            KdlValue::Float(f) => match serde_json::Number::from_f64(*f) {
+                Some(n) => Value::Number(n),
+                None => {
+                    self.err("props cannot hold NaN or infinity", e.span());
+                    return None;
+                }
+            },
+        })
+    }
+
+    /// Properties and named children as object keys.
+    fn jik_object(&mut self, node: &KdlNode) -> Option<serde_json::Map<String, Value>> {
+        let e = entries(node);
+        if !e.args.is_empty() {
+            self.err("an object takes `key=value` properties and named children, not bare values", e.args[0].span());
+        }
+        let mut map = serde_json::Map::new();
+        for (key, entry) in e.props {
+            let v = self.jik_scalar(entry)?;
+            if map.insert(key.to_string(), v).is_some() {
+                self.err(format!("key `{key}` appears twice"), entry.span());
+            }
+        }
+        for child in node.children().map(|c| c.nodes()).unwrap_or_default() {
+            let key = child.name().value();
+            if key == "-" {
+                self.err("`-` items belong in an array, not an object", child.span());
+                continue;
+            }
+            let v = self.jik_value(child)?;
+            if map.insert(key.to_string(), v).is_some() {
+                self.err(format!("key `{key}` appears twice"), child.span());
+            }
+        }
+        Some(map)
+    }
+
+    /// The JiK value of a node: scalar, array or object by its shape.
+    fn jik_value(&mut self, node: &KdlNode) -> Option<Value> {
+        let annotation = node.ty().map(|t| t.value().to_string());
+        let e = entries(node);
+        let children = node.children().map(|c| c.nodes()).unwrap_or_default();
+        let items = children.iter().filter(|c| c.name().value() == "-").count();
+        let named = children.len() - items;
+        let array = |p: &mut Parser| -> Option<Value> {
+            if !e.props.is_empty() || named > 0 {
+                p.err("an array cannot also have keys; use `-` items for objects in an array", node.span());
+                return None;
+            }
+            let mut out = Vec::new();
+            for a in &e.args {
+                out.push(p.jik_scalar(a)?);
+            }
+            for c in children {
+                out.push(p.jik_value(c)?);
+            }
+            Some(Value::Array(out))
+        };
+        match annotation.as_deref() {
+            Some("array") => array(self),
+            Some("object") => {
+                if items > 0 {
+                    self.err("an object cannot hold `-` items", node.span());
+                    return None;
+                }
+                self.jik_object(node).map(Value::Object)
+            }
+            Some(other) => {
+                self.err(format!("unknown annotation `({other})`"), node.span()).help =
+                    Some("JiK knows `(array)` and `(object)`".into());
+                None
+            }
+            None if !e.props.is_empty() || named > 0 => {
+                if !e.args.is_empty() || items > 0 {
+                    self.err("a value is either an object (keys) or an array (values), not both", node.span());
+                    return None;
+                }
+                self.jik_object(node).map(Value::Object)
+            }
+            None if items > 0 || e.args.len() > 1 => array(self),
+            None => match e.args.first() {
+                Some(a) => self.jik_scalar(a),
+                None => {
+                    self.err("no value given", node.span()).help =
+                        Some("write `#null`, or `(array)name` / `(object)name` for an empty array or object".into());
+                    None
+                }
+            },
+        }
+    }
+
+    /// `port out "events" kind=data schema=data:s3-event label="…"`
+    fn port(&mut self, node: &KdlNode) -> Option<Port> {
+        let e = entries(node);
+        let dir = e.args.first().and_then(|a| self.keyword(a, "port direction", PortDir::parse, &["in", "out"]));
+        let name = e.args.get(1).and_then(|a| self.string(a));
+        let (Some(dir), Some(name)) = (dir, name) else {
+            self.err("a port needs a direction and a name", node.span()).help =
+                Some("port out \"events\" kind=data".into());
+            return None;
+        };
+        let mut port = Port { name: PortName(name), dir, kind: None, schema: None, label: None };
+        for (key, entry) in e.props {
+            match key {
+                "kind" => {
+                    port.kind = self.keyword(entry, "edge kind", EdgeKind::parse, &["data", "control", "dependency"])
+                }
+                "schema" => port.schema = self.string(entry),
+                "label" => port.label = self.string(entry),
+                other => self.unknown("port property", other, entry.span(), &["kind", "schema", "label"]),
+            }
+        }
+        self.no_children(node);
+        Some(port)
+    }
+
+    /// `prov method=… by=… at=… confidence=… { source …; derived-from …; review … }`
+    fn prov(&mut self, node: &KdlNode) -> Option<Prov> {
+        let e = entries(node);
+        let mut method = None;
+        let mut prov = Prov::new(ProvMethod::Asserted);
+        for (key, entry) in e.props {
+            match key {
+                "method" => {
+                    method = self.keyword(
+                        entry,
+                        "provenance method",
+                        ProvMethod::parse,
+                        &["asserted", "imported", "extracted", "inferred", "computed"],
+                    )
+                }
+                "by" => prov.by = self.string(entry),
+                "at" => prov.at = self.string(entry),
+                "confidence" => {
+                    prov.confidence = match entry.value() {
+                        KdlValue::String(s) => Some(Confidence::Scheme(s.clone())),
+                        KdlValue::Float(f) => Some(Confidence::Number(*f)),
+                        KdlValue::Integer(i) => Some(Confidence::Number(*i as f64)),
+                        _ => {
+                            self.err("confidence is a number or a scheme value like \"grade:moderate\"", entry.span());
+                            None
+                        }
+                    }
+                }
+                other => self.unknown("prov property", other, entry.span(), &["method", "by", "at", "confidence"]),
+            }
+        }
+        let Some(method) = method else {
+            self.err("`prov` needs `method=`", node.span()).help =
+                Some("one of asserted, imported, extracted, inferred, computed".into());
+            return None;
+        };
+        prov.method = method;
+        for child in node.children().map(|c| c.nodes()).unwrap_or_default() {
+            let ce = entries(child);
+            match child.name().value() {
+                "source" => {
+                    let Some(source) = ce.args.first().and_then(|a| self.string(a)) else {
+                        self.err("`source` needs the id of a source node", child.span());
+                        continue;
+                    };
+                    let mut c = Citation { source, locator: None, quote: None };
+                    for (key, entry) in ce.props {
+                        match key {
+                            "locator" => c.locator = self.string(entry),
+                            "quote" => c.quote = self.string(entry),
+                            other => self.unknown("source property", other, entry.span(), &["locator", "quote"]),
+                        }
+                    }
+                    prov.sources.push(c);
+                }
+                "derived-from" => prov.derived_from.extend(ce.args.iter().filter_map(|a| self.string(a))),
+                "review" => {
+                    let mut status = None;
+                    let mut r = Review { status: ReviewStatus::Proposed, by: None, at: None, note: None };
+                    for (key, entry) in ce.props {
+                        match key {
+                            "status" => {
+                                status = self.keyword(
+                                    entry,
+                                    "review status",
+                                    ReviewStatus::parse,
+                                    &["proposed", "accepted", "rejected"],
+                                )
+                            }
+                            "by" => r.by = self.string(entry),
+                            "at" => r.at = self.string(entry),
+                            "note" => r.note = self.string(entry),
+                            other => {
+                                self.unknown("review property", other, entry.span(), &["status", "by", "at", "note"])
+                            }
+                        }
+                    }
+                    match status {
+                        Some(st) => {
+                            r.status = st;
+                            prov.review = Some(r);
+                        }
+                        None => {
+                            self.err("`review` needs `status=`", child.span());
+                        }
+                    }
+                }
+                other => {
+                    self.unknown("statement in prov", other, child.name().span(), &["source", "derived-from", "review"])
+                }
+            }
+        }
+        Some(prov)
     }
 }
 

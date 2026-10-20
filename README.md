@@ -65,6 +65,24 @@ rhizo files are [KDL v2](https://kdl.dev). Every statement is one line, nesting 
 
 **Themes.** `light`, `dark`, `paper`. Styles cascade: theme → layout defaults (root, branch colors) → classes → inline. When you set a fill without a text color, rhizo picks a readable text color for you.
 
+**Typed documents (format version 2).** Nodes, frames and edges can carry a namespaced `type`, a `props` object, ports, acceptance criteria and provenance. Kits (coming next) give types their meaning; today rhizo stores, checks and round-trips them. Plain documents are unaffected and stay version 1.
+
+```kdl
+rhizo version=2
+use infra version="0.1"
+
+node "Receipts" id=receipts type=aws.s3.bucket {
+    props versioning=#true {
+        lifecycle { - prefix="tmp/" expire-after-days=7 }
+    }
+    port out "created" kind=data
+    accept "Objects are encrypted at rest"
+}
+edge orders-fn receipts kind=data { props access="write" }
+```
+
+`props` blocks follow [JSON-in-KDL](https://github.com/kdl-org/kdl/blob/main/JSON-IN-KDL.md) exactly. Ids can be CURIEs (`id=HP:0001649`) once their `prefix` is declared, and node and edge ids share one namespace. GraphML and draw.io exports keep types and props; other formats drop them with one warning. Design: `docs/design/profiles-and-compiler.md`.
+
 The same document in YAML:
 
 ```yaml

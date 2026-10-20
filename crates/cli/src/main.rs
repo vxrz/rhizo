@@ -241,6 +241,9 @@ fn print_diagnostics(name: &str, src: &str, mut diags: Vec<Diagnostic>) {
 }
 
 fn produce(doc: &Document, to: Format, args: &RenderArgs) -> Result<Vec<u8>> {
+    if let Some(warning) = rhizo_interop::dropped_features(doc, to) {
+        eprintln!("warning: {warning}");
+    }
     let theme = args
         .theme
         .as_deref()

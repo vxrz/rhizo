@@ -148,6 +148,18 @@ impl Format {
     }
 }
 
+/// Formats that keep types, props, ports and provenance. Everything else
+/// drops them; see [`dropped_features`].
+pub fn keeps_typed_features(format: Format) -> bool {
+    matches!(format, Format::Rhizo | Format::Json | Format::Yaml | Format::GraphMl | Format::DrawIo)
+}
+
+/// One warning per conversion (not per node) when typed data will be lost.
+pub fn dropped_features(doc: &Document, format: Format) -> Option<String> {
+    (doc.is_typed() && !keeps_typed_features(format) && !format.is_image())
+        .then(|| format!("{} has no place for types, props, ports or provenance; they were left out", format.name()))
+}
+
 /// Reads `src` as `format`. Warnings are returned alongside the document;
 /// any error fails the import.
 pub fn import(src: &str, format: Format) -> Result<(Document, Vec<Diagnostic>), Vec<Diagnostic>> {

@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::typed::{self, EdgeKind, KitRef, Port, Props, Prov};
 use crate::{Arrow, LineStyle, Point, Style};
 
 macro_rules! id_type {
@@ -38,6 +39,10 @@ macro_rules! id_type {
 
 id_type!(NodeId);
 id_type!(FrameId);
+id_type!(EdgeId);
+// `aws.s3.bucket` (kit-defined) or a CURIE such as `schema:Person`.
+id_type!(TypeName);
+id_type!(PortName);
 
 /// How the nodes of a frame are arranged.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -143,6 +148,11 @@ pub struct Frame {
     /// True for the frame created for nodes written outside any `frame`.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub implicit: bool,
+    /// Frames can be typed: a workflow, an environment, a screen.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<TypeName>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
 }
 
 impl Frame {
@@ -156,6 +166,8 @@ impl Frame {
             columns: None,
             style: Style::default(),
             implicit: false,
+            ty: None,
+            props: Props::new(),
         }
     }
 }
@@ -184,9 +196,31 @@ pub struct Node {
     pub link: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<TypeName>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
+    /// Ports declared or refined on this node. Typed nodes get most of theirs
+    /// from their kit.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<Port>,
+    /// Authored acceptance criteria, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub accept: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prov: Option<Prov>,
 }
 
 impl Node {
+    /// True if any version-2 field is set.
+    pub fn is_typed(&self) -> bool {
+        self.ty.is_some()
+            || !self.props.is_empty()
+            || !self.ports.is_empty()
+            || !self.accept.is_empty()
+            || self.prov.is_some()
+    }
+
     pub fn new(id: impl Into<String>, label: impl Into<String>, frame: FrameId) -> Self {
         Node {
             id: NodeId(id.into()),
@@ -200,6 +234,11 @@ impl Node {
             note: None,
             link: None,
             tags: Vec::new(),
+            ty: None,
+            props: Props::new(),
+            ports: Vec::new(),
+            accept: Vec::new(),
+            prov: None,
         }
     }
 }
@@ -219,6 +258,23 @@ pub struct Edge {
     pub class: Vec<String>,
     #[serde(default, skip_serializing_if = "Style::is_empty")]
     pub style: Style,
+    /// Shares one namespace with node ids, so statements can point at edges.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<EdgeId>,
+    /// The predicate, e.g. `skos:broader`.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub ty: Option<TypeName>,
+    /// `None` is a plain diagram edge.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<EdgeKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_port: Option<PortName>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_port: Option<PortName>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub props: Props,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prov: Option<Prov>,
 }
 
 impl Edge {
@@ -230,7 +286,25 @@ impl Edge {
             arrow: Arrow::End,
             class: Vec::new(),
             style: Style::default(),
+            id: None,
+            ty: None,
+            kind: None,
+            from_port: None,
+            to_port: None,
+            props: Props::new(),
+            prov: None,
         }
+    }
+
+    /// True if any version-2 field is set.
+    pub fn is_typed(&self) -> bool {
+        self.id.is_some()
+            || self.ty.is_some()
+            || self.kind.is_some()
+            || self.from_port.is_some()
+            || self.to_port.is_some()
+            || !self.props.is_empty()
+            || self.prov.is_some()
     }
 
     pub fn line(&self) -> LineStyle {
@@ -252,6 +326,20 @@ pub enum ModelError {
     CrossFrameParent { child: NodeId, parent: NodeId },
     #[error("making `{parent}` the parent of `{child}` would create a cycle")]
     ParentCycle { child: NodeId, parent: NodeId },
+    #[error(
+        "invalid type name `{0}`: use dotted lowercase segments like `aws.s3.bucket`, or a CURIE with a declared prefix"
+    )]
+    InvalidTypeName(TypeName),
+    #[error("node `{node}` declares port `{port}` twice")]
+    DuplicatePort { node: NodeId, port: PortName },
+    #[error("edge {edge} uses port `{port}`, which node `{node}` does not declare")]
+    UnknownPort { edge: String, node: NodeId, port: PortName },
+    #[error("id `{0}` is used by more than one node or edge")]
+    DuplicateId(String),
+    #[error("`{id}` uses prefix `{prefix}`, which is not declared")]
+    UndeclaredPrefix { id: String, prefix: String },
+    #[error("`{0}` is not an ISO 8601 date (YYYY-MM-DD or YYYY-MM-DDThh:mm)")]
+    InvalidDate(String),
 }
 
 /// A diagram: frames, nodes, edges and named styles.
@@ -272,9 +360,28 @@ pub struct Document {
     pub nodes: IndexMap<NodeId, Node>,
     #[serde(default)]
     pub edges: Vec<Edge>,
+    /// Kits the document uses. Resolution happens outside core.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kits: Vec<KitRef>,
+    /// Base IRI that local ids expand against.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<String>,
+    /// CURIE prefixes, in author order.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub prefixes: IndexMap<String, String>,
 }
 
 impl Document {
+    /// True if the document needs format version 2.
+    pub fn is_typed(&self) -> bool {
+        !self.kits.is_empty()
+            || self.base.is_some()
+            || !self.prefixes.is_empty()
+            || self.frames.iter().any(|f| f.ty.is_some() || !f.props.is_empty())
+            || self.nodes.values().any(Node::is_typed)
+            || self.edges.iter().any(Edge::is_typed)
+    }
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -463,7 +570,79 @@ impl Document {
                 }
             }
         }
+        self.validate_typed(&mut errs);
         errs
+    }
+
+    /// Structural checks for version-2 features. What types mean is left to kits.
+    fn validate_typed(&self, errs: &mut Vec<ModelError>) {
+        let types = self
+            .frames
+            .iter()
+            .filter_map(|f| f.ty.as_ref())
+            .chain(self.nodes.values().filter_map(|n| n.ty.as_ref()))
+            .chain(self.edges.iter().filter_map(|e| e.ty.as_ref()));
+        for ty in types {
+            if !typed::type_name_ok(ty, &self.prefixes) {
+                errs.push(ModelError::InvalidTypeName(ty.clone()));
+            }
+        }
+
+        // One id namespace for nodes and edges.
+        let mut ids: std::collections::HashSet<&str> = self.nodes.keys().map(NodeId::as_str).collect();
+        for id in self.edges.iter().filter_map(|e| e.id.as_ref()) {
+            if !ids.insert(id.as_str()) {
+                errs.push(ModelError::DuplicateId(id.to_string()));
+            }
+        }
+        let all_ids = self
+            .nodes
+            .keys()
+            .map(NodeId::as_str)
+            .chain(self.edges.iter().filter_map(|e| e.id.as_ref().map(EdgeId::as_str)));
+        for id in all_ids {
+            if let Some(prefix) = typed::curie_prefix(id) {
+                if !self.prefixes.contains_key(prefix) {
+                    errs.push(ModelError::UndeclaredPrefix { id: id.to_string(), prefix: prefix.to_string() });
+                }
+            }
+        }
+
+        for n in self.nodes.values() {
+            let mut seen = std::collections::HashSet::new();
+            for p in &n.ports {
+                if !seen.insert(&p.name) {
+                    errs.push(ModelError::DuplicatePort { node: n.id.clone(), port: p.name.clone() });
+                }
+            }
+        }
+        for e in &self.edges {
+            // Typed nodes get ports from their kit, which core cannot see.
+            for (node, port) in [(&e.from, &e.from_port), (&e.to, &e.to_port)] {
+                let (Some(port), Some(n)) = (port, self.nodes.get(node)) else { continue };
+                if n.ty.is_none() && !n.ports.iter().any(|p| &p.name == port) {
+                    errs.push(ModelError::UnknownPort {
+                        edge: typed::edge_label(e.id.as_ref(), e.from.as_str(), e.to.as_str()),
+                        node: node.clone(),
+                        port: port.clone(),
+                    });
+                }
+            }
+        }
+
+        let provs = self
+            .nodes
+            .values()
+            .filter_map(|n| n.prov.as_ref())
+            .chain(self.edges.iter().filter_map(|e| e.prov.as_ref()));
+        for prov in provs {
+            let dates = [prov.at.as_deref(), prov.review.as_ref().and_then(|r| r.at.as_deref())];
+            for at in dates.into_iter().flatten() {
+                if !typed::is_iso_date(at) {
+                    errs.push(ModelError::InvalidDate(at.to_string()));
+                }
+            }
+        }
     }
 }
 
@@ -492,6 +671,45 @@ mod tests {
         assert_eq!(d.nodes[&NodeId::from("a")].children, vec![NodeId::from("b")]);
         assert_eq!(d.depth(&"c".into()), 2);
         assert!(d.validate().is_empty());
+    }
+
+    #[test]
+    fn typed_structure_checks() {
+        use crate::typed::{EdgeKind, Port, PortDir, Prov, ProvMethod};
+        let mut d = doc();
+        d.prefixes.insert("HP".into(), "http://purl.obolibrary.org/obo/HP_".into());
+        let a = d.node_mut(&"a".into()).unwrap();
+        a.ty = Some(TypeName::from("aws.s3.bucket"));
+        let b = d.node_mut(&"b".into()).unwrap();
+        b.ports.push(Port {
+            name: "out".into(),
+            dir: PortDir::Out,
+            kind: Some(EdgeKind::Data),
+            schema: None,
+            label: None,
+        });
+        let mut e = Edge::new("b", "c");
+        e.id = Some(EdgeId::from("e1"));
+        e.ty = Some(TypeName::from("HP:0001649"));
+        e.from_port = Some("out".into());
+        e.prov = Some(Prov { at: Some("2026-10-19".into()), ..Prov::new(ProvMethod::Asserted) });
+        d.add_edge(e).unwrap();
+        assert!(d.is_typed());
+        assert!(d.validate().is_empty(), "{:?}", d.validate());
+
+        let mut bad = d.clone();
+        bad.node_mut(&"c".into()).unwrap().ty = Some(TypeName::from("Bucket"));
+        bad.edges[1].id = Some(EdgeId::from("a"));
+        bad.edges[1].from_port = Some("nope".into());
+        bad.edges[1].prov.as_mut().unwrap().at = Some("yesterday".into());
+        bad.edges[0].ty = Some(TypeName::from("MONDO:1"));
+        let errs = bad.validate();
+        assert!(errs.contains(&ModelError::InvalidTypeName("Bucket".into())));
+        assert!(errs.contains(&ModelError::InvalidTypeName("MONDO:1".into())));
+        assert!(errs.contains(&ModelError::DuplicateId("a".into())));
+        assert!(errs.iter().any(|e| matches!(e, ModelError::UnknownPort { .. })));
+        assert!(errs.contains(&ModelError::InvalidDate("yesterday".into())));
+        assert!(!doc().is_typed());
     }
 
     #[test]

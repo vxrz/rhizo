@@ -2,7 +2,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use rhizo_core::{Document, Edge, Frame, FrameId, LayoutKind, Node, NodeId, Point, Theme, slugify};
+use rhizo_core::{
+    Document, Edge, EdgeId, Frame, FrameId, LayoutKind, Node, NodeId, Point, PortName, Theme, TypeName, slugify,
+};
 
 use crate::ast::{EdgeDef, File, FrameDef, NodeDef, Span};
 use crate::diag::{Diagnostic, suggest_name};
@@ -42,6 +44,9 @@ impl Lower {
         }
         self.doc.theme = file.theme.clone();
         self.doc.styles = file.styles.clone();
+        self.doc.kits = file.kits.clone();
+        self.doc.base = file.base.clone();
+        self.doc.prefixes = file.prefixes.clone();
 
         fn reserve(nodes: &[NodeDef], out: &mut Vec<(String, Span)>) {
             for n in nodes {
@@ -56,9 +61,12 @@ impl Lower {
         for f in &file.frames {
             reserve(&f.nodes, &mut explicit);
         }
+        // Edge ids share the namespace, so derived node ids must avoid them too.
+        let edge_ids = file.edges.iter().chain(file.frames.iter().flat_map(|f| &f.edges));
+        explicit.extend(edge_ids.filter_map(|e| e.id.clone().map(|id| (id, e.span))));
         for (id, span) in explicit {
             if !self.reserved.insert(id.clone()) {
-                self.diags.push(Diagnostic::error(format!("node id `{id}` is used more than once"), span));
+                self.diags.push(Diagnostic::error(format!("id `{id}` is used more than once"), span));
             }
         }
 
@@ -102,6 +110,8 @@ impl Lower {
                 columns: f.columns,
                 style: f.style.clone(),
                 implicit: false,
+                ty: f.ty.clone().map(TypeName),
+                props: f.props.clone(),
             };
             self.doc.frames.push(frame);
             for n in &f.nodes {
@@ -118,6 +128,24 @@ impl Lower {
             self.edge(e, None);
         }
         self.check_classes();
+        self.check_typed(file);
+    }
+
+    /// Version gate and structural checks for version-2 features.
+    fn check_typed(&mut self, file: &File) {
+        if self.doc.is_typed() && file.rhizo.unwrap_or(1) < 2 {
+            let span = first_typed_span(file);
+            self.diags.push(
+                Diagnostic::error(
+                    "this document uses version 2 features (type, props, ports, kits, prefixes, provenance)",
+                    span,
+                )
+                .with_help("add `rhizo version=2` at the top (JSON/YAML: `\"rhizo\": 2`)"),
+            );
+        }
+        for err in self.doc.validate() {
+            self.diags.push(Diagnostic::error(err.to_string(), None));
+        }
     }
 
     fn node(&mut self, def: &NodeDef, frame: &FrameId, parent: Option<&NodeId>) {
@@ -142,6 +170,20 @@ impl Lower {
         node.note = def.note.clone();
         node.link = def.link.clone();
         node.tags = def.tags.clone();
+        node.ty = def.ty.clone().map(TypeName);
+        node.props = def.props.clone();
+        node.ports = def.ports.clone();
+        node.accept = def.accept.clone();
+        node.prov = def.prov.clone();
+        if node.ty.is_some() && def.id.is_none() {
+            self.diags.push(
+                Diagnostic::warning(
+                    format!("typed node `{id}` has no explicit id; renaming its label would change it"),
+                    def.span,
+                )
+                .with_help(format!("pin it with `id={id}` (`rhizo fmt` does this for you)")),
+            );
+        }
         let nid = NodeId(id);
         self.by_label.entry(def.label.clone()).or_default().push(nid.clone());
         self.doc.add_node(node).expect("ids are unique and parents exist");
@@ -224,6 +266,13 @@ impl Lower {
             arrow: def.arrow.unwrap_or_default(),
             class: def.class.clone(),
             style: def.style.clone(),
+            id: def.id.clone().map(EdgeId),
+            ty: def.ty.clone().map(TypeName),
+            kind: def.kind,
+            from_port: def.from_port.clone().map(PortName),
+            to_port: def.to_port.clone().map(PortName),
+            props: def.props.clone(),
+            prov: def.prov.clone(),
         };
         self.doc.add_edge(edge).expect("endpoints resolved");
     }
@@ -247,6 +296,21 @@ impl Lower {
     }
 }
 
+fn first_typed_span(file: &File) -> Span {
+    fn in_nodes(nodes: &[NodeDef]) -> Option<Span> {
+        nodes.iter().find_map(|n| if n.is_typed() { Some(n.span) } else { in_nodes(&n.children) })
+    }
+    let frames = file.frames.iter();
+    in_nodes(&file.nodes)
+        .or_else(|| {
+            frames
+                .clone()
+                .find_map(|f| if f.ty.is_some() || !f.props.is_empty() { Some(f.span) } else { in_nodes(&f.nodes) })
+        })
+        .or_else(|| file.edges.iter().chain(frames.flat_map(|f| &f.edges)).find(|e| e.is_typed()).map(|e| e.span))
+        .flatten()
+}
+
 fn point(x: Option<f32>, y: Option<f32>) -> Option<Point> {
     match (x, y) {
         (None, None) => None,
@@ -264,8 +328,16 @@ fn unique(base: &str, taken: impl Fn(&str) -> bool) -> String {
 /// The inverse of [`lower`]: nests children, drops ids that would be derived
 /// anyway, and puts each edge in the frame that holds both ends.
 pub fn raise(doc: &Document) -> File {
-    let mut file =
-        File { title: doc.title.clone(), theme: doc.theme.clone(), styles: doc.styles.clone(), ..Default::default() };
+    let mut file = File {
+        rhizo: doc.is_typed().then_some(2),
+        title: doc.title.clone(),
+        theme: doc.theme.clone(),
+        kits: doc.kits.clone(),
+        base: doc.base.clone(),
+        prefixes: doc.prefixes.clone(),
+        styles: doc.styles.clone(),
+        ..Default::default()
+    };
     let node_def = |id: &NodeId| -> NodeDef { raise_node(doc, id) };
     for frame in &doc.frames {
         let roots: Vec<NodeDef> = doc.roots(&frame.id).map(|n| node_def(&n.id)).collect();
@@ -283,9 +355,12 @@ pub fn raise(doc: &Document) -> File {
                 x: frame.at.map(|p| p.x),
                 y: frame.at.map(|p| p.y),
                 columns: frame.columns,
+                ty: frame.ty.as_ref().map(|t| t.0.clone()),
+                props: frame.props.clone(),
                 style: frame.style.clone(),
                 nodes: roots,
                 edges: Vec::new(),
+                extra: Default::default(),
                 span: None,
             });
         }
@@ -298,6 +373,14 @@ pub fn raise(doc: &Document) -> File {
             arrow: Some(e.arrow).filter(|a| *a != rhizo_core::Arrow::End),
             class: e.class.clone(),
             style: e.style.clone(),
+            id: e.id.as_ref().map(|i| i.0.clone()),
+            ty: e.ty.as_ref().map(|t| t.0.clone()),
+            kind: e.kind,
+            from_port: e.from_port.as_ref().map(|p| p.0.clone()),
+            to_port: e.to_port.as_ref().map(|p| p.0.clone()),
+            props: e.props.clone(),
+            prov: e.prov.clone(),
+            extra: Default::default(),
             span: None,
         };
         let frame_of = |id: &NodeId| doc.node(id).map(|n| &n.frame);
@@ -325,7 +408,8 @@ fn raise_node(doc: &Document, id: &NodeId) -> NodeDef {
     let n = &doc.nodes[id];
     NodeDef {
         label: n.label.clone(),
-        id: Some(n.id.0.clone()).filter(|i| *i != slugify(&n.label)),
+        // Typed nodes always keep their id: traces and generated code hang on it.
+        id: Some(n.id.0.clone()).filter(|i| n.ty.is_some() || *i != slugify(&n.label)),
         class: n.class.clone(),
         style: n.style.clone(),
         x: n.at.map(|p| p.x),
@@ -333,7 +417,13 @@ fn raise_node(doc: &Document, id: &NodeId) -> NodeDef {
         note: n.note.clone(),
         link: n.link.clone(),
         tags: n.tags.clone(),
+        ty: n.ty.as_ref().map(|t| t.0.clone()),
+        props: n.props.clone(),
+        ports: n.ports.clone(),
+        accept: n.accept.clone(),
+        prov: n.prov.clone(),
         children: n.children.iter().map(|c| raise_node(doc, c)).collect(),
+        extra: Default::default(),
         span: None,
     }
 }
