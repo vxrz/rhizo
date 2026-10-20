@@ -1,0 +1,25 @@
+---
+title: Release pipeline
+---
+flowchart TD
+    subgraph release_pipeline["Release pipeline"]
+        merge_to_main(["Merge to main"])
+        build_artifacts("Build artifacts")
+        unit_tests("Unit tests")
+        integration_tests("Integration tests")
+        green{"All green?"}
+        publish_crates("Publish crates")
+        notify_team(["Notify team"])
+        open_incident{{"Open incident"}}
+    end
+    merge_to_main --> build_artifacts
+    build_artifacts --> unit_tests
+    build_artifacts --> integration_tests
+    unit_tests --> green
+    integration_tests --> green
+    green -->|"yes"| publish_crates
+    green -.->|"no"| open_incident
+    publish_crates --> notify_team
+    open_incident -.->|"retry"| build_artifacts
+    classDef gate fill:#fef3c7,stroke:#d97706
+    class green gate

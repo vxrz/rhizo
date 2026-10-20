@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="note" for="node" attr.name="note" attr.type="string"/>
+  <key id="link" for="node" attr.name="link" attr.type="string"/>
+  <key id="frame" for="node" attr.name="frame" attr.type="string"/>
+  <key id="x" for="node" attr.name="x" attr.type="double"/>
+  <key id="y" for="node" attr.name="y" attr.type="double"/>
+  <key id="width" for="node" attr.name="width" attr.type="double"/>
+  <key id="height" for="node" attr.name="height" attr.type="double"/>
+  <key id="fill" for="node" attr.name="fill" attr.type="string"/>
+  <key id="shape" for="node" attr.name="shape" attr.type="string"/>
+  <key id="elabel" for="edge" attr.name="label" attr.type="string"/>
+  <key id="kind" for="edge" attr.name="kind" attr.type="string"/>
+  <key id="color" for="edge" attr.name="color" attr.type="string"/>
+  <graph id="Golden mix" edgedefault="directed">
+    <node id="launch">
+      <data key="label">Launch</data>
+      <data key="frame">main</data>
+      <data key="x">143</data>
+      <data key="y">33</data>
+      <data key="width">108</data>
+      <data key="height">45</data>
+      <data key="fill">#f4f4f5</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="users">
+      <data key="label">Users</data>
+      <data key="frame">main</data>
+      <data key="x">307</data>
+      <data key="y">37</data>
+      <data key="width">66</data>
+      <data key="height">37</data>
+      <data key="fill">#232538</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="personas">
+      <data key="label">Personas</data>
+      <data key="frame">main</data>
+      <data key="x">429</data>
+      <data key="y">14</data>
+      <data key="width">88</data>
+      <data key="height">37</data>
+      <data key="fill">#181821</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="jobs">
+      <data key="label">Jobs</data>
+      <data key="frame">main</data>
+      <data key="x">429</data>
+      <data key="y">61</data>
+      <data key="width">60</data>
+      <data key="height">37</data>
+      <data key="fill">#181821</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="pricing">
+      <data key="label">Pricing</data>
+      <data key="note">Needs a decision</data>
+      <data key="link">https://example.com/pricing</data>
+      <data key="frame">main</data>
+      <data key="x">14</data>
+      <data key="y">65</data>
+      <data key="width">73</data>
+      <data key="height">37</data>
+      <data key="fill">#fee2e2</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="multi-line-label">
+      <data key="label">Multi&#10;line label</data>
+      <data key="frame">main</data>
+      <data key="x">0</data>
+      <data key="y">0</data>
+      <data key="width">87</data>
+      <data key="height">55</data>
+      <data key="fill">#173028</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="build">
+      <data key="label">Build</data>
+      <data key="frame">release</data>
+      <data key="x">642</data>
+      <data key="y">55</data>
+      <data key="width">72</data>
+      <data key="height">37</data>
+      <data key="fill">#1c1c20</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="check">
+      <data key="label">Tests pass?</data>
+      <data key="frame">release</data>
+      <data key="x">609</data>
+      <data key="y">164</data>
+      <data key="width">137</data>
+      <data key="height">85</data>
+      <data key="fill">#1c1c20</data>
+      <data key="shape">diamond</data>
+    </node>
+    <node id="ship">
+      <data key="label">Ship</data>
+      <data key="frame">release</data>
+      <data key="x">637</data>
+      <data key="y">321</data>
+      <data key="width">82</data>
+      <data key="height">37</data>
+      <data key="fill">#dcfce7</data>
+      <data key="shape">hexagon</data>
+    </node>
+    <node id="idea">
+      <data key="label">Idea</data>
+      <data key="frame">board</data>
+      <data key="x">928</data>
+      <data key="y">55</data>
+      <data key="width">56</data>
+      <data key="height">37</data>
+      <data key="fill">#1c1c20</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="question">
+      <data key="label">Question?</data>
+      <data key="frame">board</data>
+      <data key="x">1088</data>
+      <data key="y">145</data>
+      <data key="width">104</data>
+      <data key="height">35</data>
+      <data key="fill">#1c1c20</data>
+      <data key="shape">ellipse</data>
+    </node>
+    <edge id="e1" source="launch" target="users">
+      <data key="kind">child</data>
+      <data key="color">#818cf8</data>
+    </edge>
+    <edge id="e2" source="launch" target="pricing">
+      <data key="kind">child</data>
+      <data key="color">#38bdf8</data>
+    </edge>
+    <edge id="e3" source="launch" target="multi-line-label">
+      <data key="kind">child</data>
+      <data key="color">#34d399</data>
+    </edge>
+    <edge id="e4" source="users" target="personas">
+      <data key="kind">child</data>
+      <data key="color">#818cf8</data>
+    </edge>
+    <edge id="e5" source="users" target="jobs">
+      <data key="kind">child</data>
+      <data key="color">#818cf8</data>
+    </edge>
+    <edge id="e6" source="build" target="check">
+      <data key="elabel">go</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e7" source="check" target="ship">
+      <data key="elabel">go</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e8" source="check" target="build">
+      <data key="elabel">no</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e9" source="idea" target="question">
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e10" source="pricing" target="check">
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+  </graph>
+</graphml>

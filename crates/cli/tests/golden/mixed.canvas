@@ -1,0 +1,210 @@
+{
+  "nodes": [
+    {
+      "id": "frame-release",
+      "type": "group",
+      "x": 581,
+      "y": 0,
+      "width": 193,
+      "height": 386,
+      "label": "Release"
+    },
+    {
+      "id": "frame-board",
+      "type": "group",
+      "x": 900,
+      "y": 0,
+      "width": 320,
+      "height": 208,
+      "label": "Board"
+    },
+    {
+      "id": "launch",
+      "type": "text",
+      "x": 143,
+      "y": 33,
+      "width": 108,
+      "height": 45,
+      "text": "Launch"
+    },
+    {
+      "id": "users",
+      "type": "text",
+      "x": 307,
+      "y": 37,
+      "width": 66,
+      "height": 37,
+      "text": "Users"
+    },
+    {
+      "id": "personas",
+      "type": "text",
+      "x": 429,
+      "y": 14,
+      "width": 88,
+      "height": 37,
+      "text": "Personas"
+    },
+    {
+      "id": "jobs",
+      "type": "text",
+      "x": 429,
+      "y": 61,
+      "width": 60,
+      "height": 37,
+      "text": "Jobs"
+    },
+    {
+      "id": "pricing",
+      "type": "link",
+      "x": 14,
+      "y": 65,
+      "width": 73,
+      "height": 37,
+      "url": "https://example.com/pricing",
+      "color": "#ef4444"
+    },
+    {
+      "id": "multi-line-label",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 87,
+      "height": 55,
+      "text": "Multi\nline label"
+    },
+    {
+      "id": "build",
+      "type": "text",
+      "x": 642,
+      "y": 55,
+      "width": 72,
+      "height": 37,
+      "text": "Build"
+    },
+    {
+      "id": "check",
+      "type": "text",
+      "x": 609,
+      "y": 164,
+      "width": 137,
+      "height": 85,
+      "text": "Tests pass?"
+    },
+    {
+      "id": "ship",
+      "type": "text",
+      "x": 637,
+      "y": 321,
+      "width": 82,
+      "height": 37,
+      "text": "Ship",
+      "color": "#3f3f46"
+    },
+    {
+      "id": "idea",
+      "type": "text",
+      "x": 928,
+      "y": 55,
+      "width": 56,
+      "height": 37,
+      "text": "Idea"
+    },
+    {
+      "id": "question",
+      "type": "text",
+      "x": 1088,
+      "y": 145,
+      "width": 104,
+      "height": 35,
+      "text": "Question?"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "launch",
+      "fromSide": "right",
+      "toNode": "users",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#818cf8"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "launch",
+      "fromSide": "left",
+      "toNode": "pricing",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#38bdf8"
+    },
+    {
+      "id": "edge-3",
+      "fromNode": "launch",
+      "fromSide": "left",
+      "toNode": "multi-line-label",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#34d399"
+    },
+    {
+      "id": "edge-4",
+      "fromNode": "users",
+      "fromSide": "right",
+      "toNode": "personas",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#818cf8"
+    },
+    {
+      "id": "edge-5",
+      "fromNode": "users",
+      "fromSide": "right",
+      "toNode": "jobs",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#818cf8"
+    },
+    {
+      "id": "edge-6",
+      "fromNode": "build",
+      "fromSide": "bottom",
+      "toNode": "check",
+      "toSide": "top",
+      "label": "go"
+    },
+    {
+      "id": "edge-7",
+      "fromNode": "check",
+      "fromSide": "bottom",
+      "toNode": "ship",
+      "toSide": "top",
+      "label": "go"
+    },
+    {
+      "id": "edge-8",
+      "fromNode": "check",
+      "fromSide": "top",
+      "fromEnd": "arrow",
+      "toNode": "build",
+      "toSide": "bottom",
+      "label": "no"
+    },
+    {
+      "id": "edge-9",
+      "fromNode": "idea",
+      "fromSide": "right",
+      "toNode": "question",
+      "toSide": "top",
+      "toEnd": "none"
+    },
+    {
+      "id": "edge-10",
+      "fromNode": "pricing",
+      "fromSide": "right",
+      "toNode": "check",
+      "toSide": "left"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+---
+title: Golden mix
+---
+flowchart LR
+    launch("Launch")
+    users("Users")
+    personas("Personas")
+    jobs("Jobs")
+    pricing("Pricing")
+    multi_line_label("Multi<br>line label")
+    subgraph release["Release"]
+        direction TD
+        build(["Build"])
+        check{"Tests pass?"}
+        ship{{"Ship"}}
+    end
+    subgraph board["Board"]
+        direction TD
+        idea("Idea")
+        question(("Question?"))
+    end
+    launch --> users
+    launch --> pricing
+    launch --> multi_line_label
+    users --> personas
+    users --> jobs
+    build -->|"go"| check
+    check -->|"go"| ship
+    check <-.->|"no"| build
+    idea -.- question
+    pricing --> check
+    classDef risk fill:#fee2e2,stroke:#ef4444
+    classDef soft stroke-dasharray:5 5
+    class pricing risk
+    click pricing href "https://example.com/pricing"
+    style ship fill:#dcfce7

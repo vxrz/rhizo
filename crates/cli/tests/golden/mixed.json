@@ -1,0 +1,110 @@
+{
+  "title": "Golden mix",
+  "theme": "dark",
+  "styles": {
+    "risk": {
+      "fill": "#fee2e2",
+      "stroke": "#ef4444"
+    },
+    "soft": {
+      "line": "dashed"
+    }
+  },
+  "frames": [
+    {
+      "label": "Release",
+      "layout": "layered",
+      "direction": "down",
+      "nodes": [
+        {
+          "label": "Build",
+          "shape": "pill"
+        },
+        {
+          "label": "Tests pass?",
+          "id": "check",
+          "shape": "diamond"
+        },
+        {
+          "label": "Ship",
+          "fill": "#dcfce7",
+          "shape": "hexagon"
+        }
+      ],
+      "edges": [
+        {
+          "from": "build",
+          "to": "check",
+          "label": "go"
+        },
+        {
+          "from": "check",
+          "to": "ship",
+          "label": "go"
+        },
+        {
+          "from": "check",
+          "to": "build",
+          "label": "no",
+          "arrow": "both",
+          "class": [
+            "soft"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Board",
+      "layout": "free",
+      "x": 900.0,
+      "y": 0.0,
+      "nodes": [
+        {
+          "label": "Idea",
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "label": "Question?",
+          "shape": "ellipse",
+          "x": 160.0,
+          "y": 90.0
+        }
+      ],
+      "edges": [
+        {
+          "from": "idea",
+          "to": "question",
+          "arrow": "none",
+          "line": "dotted"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "label": "Launch",
+      "children": [
+        {
+          "label": "Users",
+          "children": [
+            "Personas",
+            "Jobs"
+          ]
+        },
+        {
+          "label": "Pricing",
+          "class": [
+            "risk"
+          ],
+          "note": "Needs a decision",
+          "link": "https://example.com/pricing"
+        },
+        "Multi\nline label"
+      ]
+    }
+  ],
+  "edges": [
+    "pricing -> check"
+  ]
+}

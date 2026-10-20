@@ -1,0 +1,154 @@
+{
+  "nodes": [
+    {
+      "id": "frame-release-pipeline",
+      "type": "group",
+      "x": 0,
+      "y": 0,
+      "width": 362,
+      "height": 605,
+      "label": "Release pipeline"
+    },
+    {
+      "id": "merge-to-main",
+      "type": "text",
+      "x": 130,
+      "y": 55,
+      "width": 132,
+      "height": 37,
+      "text": "Merge to main"
+    },
+    {
+      "id": "build-artifacts",
+      "type": "text",
+      "x": 147,
+      "y": 131,
+      "width": 117,
+      "height": 37,
+      "text": "Build artifacts"
+    },
+    {
+      "id": "unit-tests",
+      "type": "text",
+      "x": 28,
+      "y": 207,
+      "width": 90,
+      "height": 37,
+      "text": "Unit tests"
+    },
+    {
+      "id": "integration-tests",
+      "type": "text",
+      "x": 146,
+      "y": 207,
+      "width": 133,
+      "height": 37,
+      "text": "Integration tests"
+    },
+    {
+      "id": "green",
+      "type": "text",
+      "x": 106,
+      "y": 316,
+      "width": 122,
+      "height": 76,
+      "text": "All green?",
+      "color": "#d97706"
+    },
+    {
+      "id": "publish-crates",
+      "type": "text",
+      "x": 47,
+      "y": 464,
+      "width": 119,
+      "height": 37,
+      "text": "Publish crates"
+    },
+    {
+      "id": "notify-team",
+      "type": "text",
+      "x": 50,
+      "y": 540,
+      "width": 114,
+      "height": 37,
+      "text": "Notify team"
+    },
+    {
+      "id": "open-incident",
+      "type": "text",
+      "x": 194,
+      "y": 464,
+      "width": 140,
+      "height": 37,
+      "text": "Open incident"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "merge-to-main",
+      "fromSide": "bottom",
+      "toNode": "build-artifacts",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "build-artifacts",
+      "fromSide": "bottom",
+      "toNode": "unit-tests",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-3",
+      "fromNode": "build-artifacts",
+      "fromSide": "bottom",
+      "toNode": "integration-tests",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-4",
+      "fromNode": "unit-tests",
+      "fromSide": "bottom",
+      "toNode": "green",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-5",
+      "fromNode": "integration-tests",
+      "fromSide": "bottom",
+      "toNode": "green",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-6",
+      "fromNode": "green",
+      "fromSide": "bottom",
+      "toNode": "publish-crates",
+      "toSide": "top",
+      "label": "yes"
+    },
+    {
+      "id": "edge-7",
+      "fromNode": "green",
+      "fromSide": "bottom",
+      "toNode": "open-incident",
+      "toSide": "top",
+      "label": "no"
+    },
+    {
+      "id": "edge-8",
+      "fromNode": "publish-crates",
+      "fromSide": "bottom",
+      "toNode": "notify-team",
+      "toSide": "top"
+    },
+    {
+      "id": "edge-9",
+      "fromNode": "open-incident",
+      "fromSide": "top",
+      "toNode": "build-artifacts",
+      "toSide": "bottom",
+      "label": "retry"
+    }
+  ]
+}

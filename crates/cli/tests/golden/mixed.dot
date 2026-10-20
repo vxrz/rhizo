@@ -1,0 +1,33 @@
+digraph "Golden mix" {
+    graph [rankdir=LR, fontname="Helvetica", nodesep=0.4, ranksep=0.5, bgcolor="#111113"];
+    label="Golden mix"; labelloc=t; fontsize=18;
+    node [shape=box, style="rounded,filled", fillcolor="#1c1c20", color="#3f3f46", fontcolor="#f4f4f5", fontname="Helvetica", fontsize=12, margin="0.2,0.1"];
+    edge [color="#71717a", fontname="Helvetica", fontsize=10, fontcolor="#a1a1aa"];
+    launch [label="Launch", style="rounded,filled"];
+    users [label="Users", style="rounded,filled"];
+    personas [label="Personas", style="rounded,filled"];
+    jobs [label="Jobs", style="rounded,filled"];
+    pricing [label="Pricing", style="rounded,filled", fillcolor="#fee2e2", color="#ef4444", URL="https://example.com/pricing", tooltip="Needs a decision"];
+    multi_line_label [label="Multi\nline label", style="rounded,filled"];
+    subgraph cluster_release {
+        label="Release"; style="rounded,filled"; fillcolor="#18181b"; color="#27272a";
+        build [label="Build", style="rounded,filled", shape=box, peripheries=1];
+        check [label="Tests pass?", shape=diamond, style=filled];
+        ship [label="Ship", shape=hexagon, style=filled, fillcolor="#dcfce7"];
+    }
+    subgraph cluster_board {
+        label="Board"; style="rounded,filled"; fillcolor="#18181b"; color="#27272a";
+        idea [label="Idea", style="rounded,filled"];
+        question [label="Question?", shape=ellipse, style=filled];
+    }
+    launch -> users [arrowhead=none];
+    launch -> pricing [arrowhead=none];
+    launch -> multi_line_label [arrowhead=none];
+    users -> personas [arrowhead=none];
+    users -> jobs [arrowhead=none];
+    build -> check [label="go"];
+    check -> ship [label="go"];
+    check -> build [label="no", dir=both];
+    idea -> question [dir=none, style=dotted];
+    pricing -> check;
+}

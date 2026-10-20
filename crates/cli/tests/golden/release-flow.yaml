@@ -1,0 +1,43 @@
+title: Release pipeline
+styles:
+  gate:
+    fill: '#fef3c7'
+    stroke: '#d97706'
+frames:
+- label: Release pipeline
+  layout: layered
+  direction: down
+  nodes:
+  - label: Merge to main
+    shape: pill
+  - Build artifacts
+  - Unit tests
+  - Integration tests
+  - label: All green?
+    id: green
+    class:
+    - gate
+    shape: diamond
+  - Publish crates
+  - label: Notify team
+    shape: pill
+  - label: Open incident
+    shape: hexagon
+  edges:
+  - merge-to-main -> build-artifacts
+  - build-artifacts -> unit-tests
+  - build-artifacts -> integration-tests
+  - unit-tests -> green
+  - integration-tests -> green
+  - from: green
+    to: publish-crates
+    label: yes
+  - from: green
+    to: open-incident
+    label: no
+    line: dashed
+  - publish-crates -> notify-team
+  - from: open-incident
+    to: build-artifacts
+    label: retry
+    line: dotted

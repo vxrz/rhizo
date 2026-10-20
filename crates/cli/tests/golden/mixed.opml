@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Golden mix</title>
+  </head>
+  <body>
+    <outline text="main">
+      <outline text="Launch">
+        <outline text="Users">
+          <outline text="Personas"/>
+          <outline text="Jobs"/>
+        </outline>
+        <outline text="Pricing" _note="Needs a decision" type="link" url="https://example.com/pricing"/>
+        <outline text="Multi&#10;line label"/>
+      </outline>
+    </outline>
+    <outline text="Release">
+      <outline text="Build"/>
+      <outline text="Tests pass?"/>
+      <outline text="Ship"/>
+    </outline>
+    <outline text="Board">
+      <outline text="Idea"/>
+      <outline text="Question?"/>
+    </outline>
+  </body>
+</opml>

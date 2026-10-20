@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="note" for="node" attr.name="note" attr.type="string"/>
+  <key id="link" for="node" attr.name="link" attr.type="string"/>
+  <key id="frame" for="node" attr.name="frame" attr.type="string"/>
+  <key id="x" for="node" attr.name="x" attr.type="double"/>
+  <key id="y" for="node" attr.name="y" attr.type="double"/>
+  <key id="width" for="node" attr.name="width" attr.type="double"/>
+  <key id="height" for="node" attr.name="height" attr.type="double"/>
+  <key id="fill" for="node" attr.name="fill" attr.type="string"/>
+  <key id="shape" for="node" attr.name="shape" attr.type="string"/>
+  <key id="elabel" for="edge" attr.name="label" attr.type="string"/>
+  <key id="kind" for="edge" attr.name="kind" attr.type="string"/>
+  <key id="color" for="edge" attr.name="color" attr.type="string"/>
+  <graph id="Product strategy 2027" edgedefault="directed">
+    <node id="product-strategy">
+      <data key="label">Product strategy</data>
+      <data key="frame">main</data>
+      <data key="x">386</data>
+      <data key="y">137</data>
+      <data key="width">182</data>
+      <data key="height">45</data>
+      <data key="fill">#18181b</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="customers">
+      <data key="label">Customers</data>
+      <data key="frame">main</data>
+      <data key="x">624</data>
+      <data key="y">59</data>
+      <data key="width">98</data>
+      <data key="height">37</data>
+      <data key="fill">#e6e7fd</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="indie-researchers">
+      <data key="label">Indie researchers</data>
+      <data key="frame">main</data>
+      <data key="x">778</data>
+      <data key="y">12</data>
+      <data key="width">138</data>
+      <data key="height">37</data>
+      <data key="fill">#f6f6fe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="design-teams">
+      <data key="label">Design teams</data>
+      <data key="frame">main</data>
+      <data key="x">778</data>
+      <data key="y">59</data>
+      <data key="width">116</data>
+      <data key="height">37</data>
+      <data key="fill">#f6f6fe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="engineering-orgs">
+      <data key="label">Engineering orgs</data>
+      <data key="frame">main</data>
+      <data key="x">778</data>
+      <data key="y">106</data>
+      <data key="width">134</data>
+      <data key="height">37</data>
+      <data key="fill">#f6f6fe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="architecture-docs">
+      <data key="label">Architecture docs</data>
+      <data key="frame">main</data>
+      <data key="x">968</data>
+      <data key="y">82</data>
+      <data key="width">140</data>
+      <data key="height">37</data>
+      <data key="fill">#f6f6fe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="onboarding">
+      <data key="label">Onboarding</data>
+      <data key="frame">main</data>
+      <data key="x">968</data>
+      <data key="y">129</data>
+      <data key="width">99</data>
+      <data key="height">37</data>
+      <data key="fill">#f6f6fe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="differentiation">
+      <data key="label">Differentiation</data>
+      <data key="frame">main</data>
+      <data key="x">624</data>
+      <data key="y">223</data>
+      <data key="width">119</data>
+      <data key="height">37</data>
+      <data key="fill">#d8f1fb</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="text-and-canvas-one-document">
+      <data key="label">Text and canvas, one document</data>
+      <data key="frame">main</data>
+      <data key="x">799</data>
+      <data key="y">176</data>
+      <data key="width">232</data>
+      <data key="height">37</data>
+      <data key="fill">#f1fafe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="exports-every-format">
+      <data key="label">Exports every format</data>
+      <data key="frame">main</data>
+      <data key="x">799</data>
+      <data key="y">223</data>
+      <data key="width">162</data>
+      <data key="height">37</data>
+      <data key="fill">#dcfce7</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="native-speed">
+      <data key="label">Native speed</data>
+      <data key="frame">main</data>
+      <data key="x">799</data>
+      <data key="y">270</data>
+      <data key="width">111</data>
+      <data key="height">37</data>
+      <data key="fill">#f1fafe</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="risks">
+      <data key="label">Risks</data>
+      <data key="frame">main</data>
+      <data key="x">265</data>
+      <data key="y">259</data>
+      <data key="width">65</data>
+      <data key="height">37</data>
+      <data key="fill">#d9f4eb</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="scope-creep">
+      <data key="label">Scope creep</data>
+      <data key="frame">main</data>
+      <data key="x">102</data>
+      <data key="y">235</data>
+      <data key="width">107</data>
+      <data key="height">37</data>
+      <data key="fill">#fee2e2</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="mermaid-parity-expectations">
+      <data key="label">Mermaid parity expectations</data>
+      <data key="frame">main</data>
+      <data key="x">0</data>
+      <data key="y">282</data>
+      <data key="width">209</data>
+      <data key="height">37</data>
+      <data key="fill">#fee2e2</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="go-to-market">
+      <data key="label">Go to market</data>
+      <data key="frame">main</data>
+      <data key="x">217</data>
+      <data key="y">141</data>
+      <data key="width">113</data>
+      <data key="height">37</data>
+      <data key="fill">#fdefd8</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="open-source-core">
+      <data key="label">Open source core</data>
+      <data key="frame">main</data>
+      <data key="x">22</data>
+      <data key="y">94</data>
+      <data key="width">139</data>
+      <data key="height">37</data>
+      <data key="fill">#fef9f0</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="pro-collaboration">
+      <data key="label">Pro: collaboration</data>
+      <data key="frame">main</data>
+      <data key="x">22</data>
+      <data key="y">141</data>
+      <data key="width">139</data>
+      <data key="height">37</data>
+      <data key="fill">#fef9f0</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="templates-gallery">
+      <data key="label">Templates gallery</data>
+      <data key="frame">main</data>
+      <data key="x">18</data>
+      <data key="y">188</data>
+      <data key="width">143</data>
+      <data key="height">37</data>
+      <data key="fill">#fef9f0</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="metrics">
+      <data key="label">Metrics</data>
+      <data key="frame">main</data>
+      <data key="x">253</data>
+      <data key="y">24</data>
+      <data key="width">77</data>
+      <data key="height">37</data>
+      <data key="fill">#fce1e1</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="weekly-active-docs">
+      <data key="label">Weekly active docs</data>
+      <data key="frame">main</data>
+      <data key="x">45</data>
+      <data key="y">0</data>
+      <data key="width">152</data>
+      <data key="height">37</data>
+      <data key="fill">#fef4f4</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="exports-per-user">
+      <data key="label">Exports per user</data>
+      <data key="frame">main</data>
+      <data key="x">64</data>
+      <data key="y">47</data>
+      <data key="width">133</data>
+      <data key="height">37</data>
+      <data key="fill">#fef4f4</data>
+      <data key="shape">rounded</data>
+    </node>
+    <edge id="e1" source="product-strategy" target="customers">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e2" source="product-strategy" target="differentiation">
+      <data key="kind">child</data>
+      <data key="color">#0ea5e9</data>
+    </edge>
+    <edge id="e3" source="product-strategy" target="risks">
+      <data key="kind">child</data>
+      <data key="color">#10b981</data>
+    </edge>
+    <edge id="e4" source="product-strategy" target="go-to-market">
+      <data key="kind">child</data>
+      <data key="color">#f59e0b</data>
+    </edge>
+    <edge id="e5" source="product-strategy" target="metrics">
+      <data key="kind">child</data>
+      <data key="color">#ef4444</data>
+    </edge>
+    <edge id="e6" source="customers" target="indie-researchers">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e7" source="customers" target="design-teams">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e8" source="customers" target="engineering-orgs">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e9" source="engineering-orgs" target="architecture-docs">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e10" source="engineering-orgs" target="onboarding">
+      <data key="kind">child</data>
+      <data key="color">#6366f1</data>
+    </edge>
+    <edge id="e11" source="differentiation" target="text-and-canvas-one-document">
+      <data key="kind">child</data>
+      <data key="color">#0ea5e9</data>
+    </edge>
+    <edge id="e12" source="differentiation" target="exports-every-format">
+      <data key="kind">child</data>
+      <data key="color">#0ea5e9</data>
+    </edge>
+    <edge id="e13" source="differentiation" target="native-speed">
+      <data key="kind">child</data>
+      <data key="color">#0ea5e9</data>
+    </edge>
+    <edge id="e14" source="risks" target="scope-creep">
+      <data key="kind">child</data>
+      <data key="color">#10b981</data>
+    </edge>
+    <edge id="e15" source="risks" target="mermaid-parity-expectations">
+      <data key="kind">child</data>
+      <data key="color">#10b981</data>
+    </edge>
+    <edge id="e16" source="go-to-market" target="open-source-core">
+      <data key="kind">child</data>
+      <data key="color">#f59e0b</data>
+    </edge>
+    <edge id="e17" source="go-to-market" target="pro-collaboration">
+      <data key="kind">child</data>
+      <data key="color">#f59e0b</data>
+    </edge>
+    <edge id="e18" source="go-to-market" target="templates-gallery">
+      <data key="kind">child</data>
+      <data key="color">#f59e0b</data>
+    </edge>
+    <edge id="e19" source="metrics" target="weekly-active-docs">
+      <data key="kind">child</data>
+      <data key="color">#ef4444</data>
+    </edge>
+    <edge id="e20" source="metrics" target="exports-per-user">
+      <data key="kind">child</data>
+      <data key="color">#ef4444</data>
+    </edge>
+  </graph>
+</graphml>

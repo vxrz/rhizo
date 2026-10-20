@@ -1,0 +1,378 @@
+{
+  "nodes": [
+    {
+      "id": "product-strategy",
+      "type": "text",
+      "x": 386,
+      "y": 137,
+      "width": 182,
+      "height": 45,
+      "text": "Product strategy"
+    },
+    {
+      "id": "customers",
+      "type": "text",
+      "x": 624,
+      "y": 59,
+      "width": 98,
+      "height": 37,
+      "text": "Customers"
+    },
+    {
+      "id": "indie-researchers",
+      "type": "text",
+      "x": 778,
+      "y": 12,
+      "width": 138,
+      "height": 37,
+      "text": "Indie researchers"
+    },
+    {
+      "id": "design-teams",
+      "type": "text",
+      "x": 778,
+      "y": 59,
+      "width": 116,
+      "height": 37,
+      "text": "Design teams"
+    },
+    {
+      "id": "engineering-orgs",
+      "type": "text",
+      "x": 778,
+      "y": 106,
+      "width": 134,
+      "height": 37,
+      "text": "Engineering orgs"
+    },
+    {
+      "id": "architecture-docs",
+      "type": "text",
+      "x": 968,
+      "y": 82,
+      "width": 140,
+      "height": 37,
+      "text": "Architecture docs"
+    },
+    {
+      "id": "onboarding",
+      "type": "text",
+      "x": 968,
+      "y": 129,
+      "width": 99,
+      "height": 37,
+      "text": "Onboarding"
+    },
+    {
+      "id": "differentiation",
+      "type": "text",
+      "x": 624,
+      "y": 223,
+      "width": 119,
+      "height": 37,
+      "text": "Differentiation"
+    },
+    {
+      "id": "text-and-canvas-one-document",
+      "type": "text",
+      "x": 799,
+      "y": 176,
+      "width": 232,
+      "height": 37,
+      "text": "Text and canvas, one document"
+    },
+    {
+      "id": "exports-every-format",
+      "type": "text",
+      "x": 799,
+      "y": 223,
+      "width": 162,
+      "height": 37,
+      "text": "Exports every format",
+      "color": "#22c55e"
+    },
+    {
+      "id": "native-speed",
+      "type": "text",
+      "x": 799,
+      "y": 270,
+      "width": 111,
+      "height": 37,
+      "text": "Native speed"
+    },
+    {
+      "id": "risks",
+      "type": "text",
+      "x": 265,
+      "y": 259,
+      "width": 65,
+      "height": 37,
+      "text": "Risks"
+    },
+    {
+      "id": "scope-creep",
+      "type": "text",
+      "x": 102,
+      "y": 235,
+      "width": 107,
+      "height": 37,
+      "text": "Scope creep",
+      "color": "#ef4444"
+    },
+    {
+      "id": "mermaid-parity-expectations",
+      "type": "text",
+      "x": 0,
+      "y": 282,
+      "width": 209,
+      "height": 37,
+      "text": "Mermaid parity expectations",
+      "color": "#ef4444"
+    },
+    {
+      "id": "go-to-market",
+      "type": "text",
+      "x": 217,
+      "y": 141,
+      "width": 113,
+      "height": 37,
+      "text": "Go to market"
+    },
+    {
+      "id": "open-source-core",
+      "type": "text",
+      "x": 22,
+      "y": 94,
+      "width": 139,
+      "height": 37,
+      "text": "Open source core"
+    },
+    {
+      "id": "pro-collaboration",
+      "type": "text",
+      "x": 22,
+      "y": 141,
+      "width": 139,
+      "height": 37,
+      "text": "Pro: collaboration"
+    },
+    {
+      "id": "templates-gallery",
+      "type": "text",
+      "x": 18,
+      "y": 188,
+      "width": 143,
+      "height": 37,
+      "text": "Templates gallery"
+    },
+    {
+      "id": "metrics",
+      "type": "text",
+      "x": 253,
+      "y": 24,
+      "width": 77,
+      "height": 37,
+      "text": "Metrics"
+    },
+    {
+      "id": "weekly-active-docs",
+      "type": "text",
+      "x": 45,
+      "y": 0,
+      "width": 152,
+      "height": 37,
+      "text": "Weekly active docs"
+    },
+    {
+      "id": "exports-per-user",
+      "type": "text",
+      "x": 64,
+      "y": 47,
+      "width": 133,
+      "height": 37,
+      "text": "Exports per user"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "product-strategy",
+      "fromSide": "top",
+      "toNode": "customers",
+      "toSide": "bottom",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "product-strategy",
+      "fromSide": "bottom",
+      "toNode": "differentiation",
+      "toSide": "top",
+      "toEnd": "none",
+      "color": "#0ea5e9"
+    },
+    {
+      "id": "edge-3",
+      "fromNode": "product-strategy",
+      "fromSide": "bottom",
+      "toNode": "risks",
+      "toSide": "top",
+      "toEnd": "none",
+      "color": "#10b981"
+    },
+    {
+      "id": "edge-4",
+      "fromNode": "product-strategy",
+      "fromSide": "left",
+      "toNode": "go-to-market",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "edge-5",
+      "fromNode": "product-strategy",
+      "fromSide": "top",
+      "toNode": "metrics",
+      "toSide": "bottom",
+      "toEnd": "none",
+      "color": "#ef4444"
+    },
+    {
+      "id": "edge-6",
+      "fromNode": "customers",
+      "fromSide": "right",
+      "toNode": "indie-researchers",
+      "toSide": "bottom",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-7",
+      "fromNode": "customers",
+      "fromSide": "right",
+      "toNode": "design-teams",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-8",
+      "fromNode": "customers",
+      "fromSide": "right",
+      "toNode": "engineering-orgs",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-9",
+      "fromNode": "engineering-orgs",
+      "fromSide": "right",
+      "toNode": "architecture-docs",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-10",
+      "fromNode": "engineering-orgs",
+      "fromSide": "right",
+      "toNode": "onboarding",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#6366f1"
+    },
+    {
+      "id": "edge-11",
+      "fromNode": "differentiation",
+      "fromSide": "right",
+      "toNode": "text-and-canvas-one-document",
+      "toSide": "bottom",
+      "toEnd": "none",
+      "color": "#0ea5e9"
+    },
+    {
+      "id": "edge-12",
+      "fromNode": "differentiation",
+      "fromSide": "right",
+      "toNode": "exports-every-format",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#0ea5e9"
+    },
+    {
+      "id": "edge-13",
+      "fromNode": "differentiation",
+      "fromSide": "right",
+      "toNode": "native-speed",
+      "toSide": "left",
+      "toEnd": "none",
+      "color": "#0ea5e9"
+    },
+    {
+      "id": "edge-14",
+      "fromNode": "risks",
+      "fromSide": "left",
+      "toNode": "scope-creep",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#10b981"
+    },
+    {
+      "id": "edge-15",
+      "fromNode": "risks",
+      "fromSide": "left",
+      "toNode": "mermaid-parity-expectations",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#10b981"
+    },
+    {
+      "id": "edge-16",
+      "fromNode": "go-to-market",
+      "fromSide": "left",
+      "toNode": "open-source-core",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "edge-17",
+      "fromNode": "go-to-market",
+      "fromSide": "left",
+      "toNode": "pro-collaboration",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "edge-18",
+      "fromNode": "go-to-market",
+      "fromSide": "left",
+      "toNode": "templates-gallery",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "edge-19",
+      "fromNode": "metrics",
+      "fromSide": "left",
+      "toNode": "weekly-active-docs",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#ef4444"
+    },
+    {
+      "id": "edge-20",
+      "fromNode": "metrics",
+      "fromSide": "left",
+      "toNode": "exports-per-user",
+      "toSide": "right",
+      "toEnd": "none",
+      "color": "#ef4444"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Product strategy 2027</title>
+  </head>
+  <body>
+    <outline text="Product strategy">
+      <outline text="Customers">
+        <outline text="Indie researchers"/>
+        <outline text="Design teams"/>
+        <outline text="Engineering orgs">
+          <outline text="Architecture docs"/>
+          <outline text="Onboarding"/>
+        </outline>
+      </outline>
+      <outline text="Differentiation">
+        <outline text="Text and canvas, one document"/>
+        <outline text="Exports every format"/>
+        <outline text="Native speed"/>
+      </outline>
+      <outline text="Risks">
+        <outline text="Scope creep"/>
+        <outline text="Mermaid parity expectations"/>
+      </outline>
+      <outline text="Go to market">
+        <outline text="Open source core"/>
+        <outline text="Pro: collaboration"/>
+        <outline text="Templates gallery"/>
+      </outline>
+      <outline text="Metrics">
+        <outline text="Weekly active docs"/>
+        <outline text="Exports per user"/>
+      </outline>
+    </outline>
+  </body>
+</opml>

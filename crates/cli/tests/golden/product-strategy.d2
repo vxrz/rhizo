@@ -1,0 +1,62 @@
+# Product strategy 2027
+direction: right
+
+classes: {
+  risk: {
+    style.fill: "#fee2e2"
+    style.stroke: "#ef4444"
+  }
+  win: {
+    style.fill: "#dcfce7"
+    style.stroke: "#22c55e"
+  }
+}
+
+product_strategy: "Product strategy"
+customers: "Customers"
+indie_researchers: "Indie researchers"
+design_teams: "Design teams"
+engineering_orgs: "Engineering orgs"
+architecture_docs: "Architecture docs"
+onboarding: "Onboarding"
+differentiation: "Differentiation"
+text_and_canvas_one_document: "Text and canvas, one document"
+exports_every_format: "Exports every format" {
+  class: win
+}
+native_speed: "Native speed"
+risks: "Risks"
+scope_creep: "Scope creep" {
+  class: risk
+}
+mermaid_parity_expectations: "Mermaid parity expectations" {
+  class: risk
+}
+go_to_market: "Go to market"
+open_source_core: "Open source core"
+pro_collaboration: "Pro: collaboration"
+templates_gallery: "Templates gallery"
+metrics: "Metrics"
+weekly_active_docs: "Weekly active docs"
+exports_per_user: "Exports per user"
+
+product_strategy -> customers
+product_strategy -> differentiation
+product_strategy -> risks
+product_strategy -> go_to_market
+product_strategy -> metrics
+customers -> indie_researchers
+customers -> design_teams
+customers -> engineering_orgs
+engineering_orgs -> architecture_docs
+engineering_orgs -> onboarding
+differentiation -> text_and_canvas_one_document
+differentiation -> exports_every_format
+differentiation -> native_speed
+risks -> scope_creep
+risks -> mermaid_parity_expectations
+go_to_market -> open_source_core
+go_to_market -> pro_collaboration
+go_to_market -> templates_gallery
+metrics -> weekly_active_docs
+metrics -> exports_per_user

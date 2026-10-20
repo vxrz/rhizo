@@ -1,0 +1,30 @@
+<mxfile host="rhizo" type="device">
+  <diagram id="rhizo" name="Release pipeline">
+    <mxGraphModel dx="426" dy="669" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="f-release-pipeline" value="Release pipeline" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor=#fafafa;strokeColor=#e4e4e7;fontColor=#71717a;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="362" height="605" as="geometry"/>
+        </mxCell>
+        <mxCell id="n-merge-to-main" value="Merge to main" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="130" y="55" width="132" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-build-artifacts" value="Build artifacts" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="147" y="131" width="117" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-unit-tests" value="Unit tests" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="28" y="207" width="90" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-integration-tests" value="Integration tests" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="146" y="207" width="133" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-green" value="All green?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="106" y="316" width="122" height="76" as="geometry"/></mxCell>
+        <mxCell id="n-publish-crates" value="Publish crates" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="47" y="464" width="119" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-notify-team" value="Notify team" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="50" y="540" width="114" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-open-incident" value="Open incident" style="shape=hexagon;perimeter=hexagonPerimeter2;size=0.2;fixedSize=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-release-pipeline"><mxGeometry x="194" y="464" width="140" height="37" as="geometry"/></mxCell>
+        <mxCell id="e-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-merge-to-main" target="n-build-artifacts"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-build-artifacts" target="n-unit-tests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-build-artifacts" target="n-integration-tests"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-unit-tests" target="n-green"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-integration-tests" target="n-green"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-6" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-green" target="n-publish-crates"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-7" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;dashed=1;" edge="1" parent="1" source="n-green" target="n-open-incident"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-publish-crates" target="n-notify-team"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-9" value="retry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;dashed=1;dashPattern=1 4;" edge="1" parent="1" source="n-open-incident" target="n-build-artifacts"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

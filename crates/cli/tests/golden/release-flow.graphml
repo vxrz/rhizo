@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="note" for="node" attr.name="note" attr.type="string"/>
+  <key id="link" for="node" attr.name="link" attr.type="string"/>
+  <key id="frame" for="node" attr.name="frame" attr.type="string"/>
+  <key id="x" for="node" attr.name="x" attr.type="double"/>
+  <key id="y" for="node" attr.name="y" attr.type="double"/>
+  <key id="width" for="node" attr.name="width" attr.type="double"/>
+  <key id="height" for="node" attr.name="height" attr.type="double"/>
+  <key id="fill" for="node" attr.name="fill" attr.type="string"/>
+  <key id="shape" for="node" attr.name="shape" attr.type="string"/>
+  <key id="elabel" for="edge" attr.name="label" attr.type="string"/>
+  <key id="kind" for="edge" attr.name="kind" attr.type="string"/>
+  <key id="color" for="edge" attr.name="color" attr.type="string"/>
+  <graph id="Release pipeline" edgedefault="directed">
+    <node id="merge-to-main">
+      <data key="label">Merge to main</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">130</data>
+      <data key="y">55</data>
+      <data key="width">132</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="build-artifacts">
+      <data key="label">Build artifacts</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">147</data>
+      <data key="y">131</data>
+      <data key="width">117</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="unit-tests">
+      <data key="label">Unit tests</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">28</data>
+      <data key="y">207</data>
+      <data key="width">90</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="integration-tests">
+      <data key="label">Integration tests</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">146</data>
+      <data key="y">207</data>
+      <data key="width">133</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="green">
+      <data key="label">All green?</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">106</data>
+      <data key="y">316</data>
+      <data key="width">122</data>
+      <data key="height">76</data>
+      <data key="fill">#fef3c7</data>
+      <data key="shape">diamond</data>
+    </node>
+    <node id="publish-crates">
+      <data key="label">Publish crates</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">47</data>
+      <data key="y">464</data>
+      <data key="width">119</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="notify-team">
+      <data key="label">Notify team</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">50</data>
+      <data key="y">540</data>
+      <data key="width">114</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="open-incident">
+      <data key="label">Open incident</data>
+      <data key="frame">release-pipeline</data>
+      <data key="x">194</data>
+      <data key="y">464</data>
+      <data key="width">140</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">hexagon</data>
+    </node>
+    <edge id="e1" source="merge-to-main" target="build-artifacts">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e2" source="build-artifacts" target="unit-tests">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e3" source="build-artifacts" target="integration-tests">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e4" source="unit-tests" target="green">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e5" source="integration-tests" target="green">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e6" source="green" target="publish-crates">
+      <data key="elabel">yes</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e7" source="green" target="open-incident">
+      <data key="elabel">no</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e8" source="publish-crates" target="notify-team">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e9" source="open-incident" target="build-artifacts">
+      <data key="elabel">retry</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+  </graph>
+</graphml>

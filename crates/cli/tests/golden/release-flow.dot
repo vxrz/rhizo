@@ -1,0 +1,26 @@
+digraph "Release pipeline" {
+    graph [rankdir=TB, fontname="Helvetica", nodesep=0.4, ranksep=0.5, bgcolor="#ffffff"];
+    label="Release pipeline"; labelloc=t; fontsize=18;
+    node [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#d4d4d8", fontcolor="#18181b", fontname="Helvetica", fontsize=12, margin="0.2,0.1"];
+    edge [color="#a1a1aa", fontname="Helvetica", fontsize=10, fontcolor="#71717a"];
+    subgraph cluster_release_pipeline {
+        label="Release pipeline"; style="rounded,filled"; fillcolor="#fafafa"; color="#e4e4e7";
+        merge_to_main [label="Merge to main", style="rounded,filled", shape=box, peripheries=1];
+        build_artifacts [label="Build artifacts", style="rounded,filled"];
+        unit_tests [label="Unit tests", style="rounded,filled"];
+        integration_tests [label="Integration tests", style="rounded,filled"];
+        green [label="All green?", shape=diamond, style=filled, fillcolor="#fef3c7", color="#d97706"];
+        publish_crates [label="Publish crates", style="rounded,filled"];
+        notify_team [label="Notify team", style="rounded,filled", shape=box, peripheries=1];
+        open_incident [label="Open incident", shape=hexagon, style=filled];
+    }
+    merge_to_main -> build_artifacts;
+    build_artifacts -> unit_tests;
+    build_artifacts -> integration_tests;
+    unit_tests -> green;
+    integration_tests -> green;
+    green -> publish_crates [label="yes"];
+    green -> open_incident [label="no", style=dashed];
+    publish_crates -> notify_team;
+    open_incident -> build_artifacts [label="retry", style=dotted];
+}

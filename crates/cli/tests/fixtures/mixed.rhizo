@@ -1,0 +1,28 @@
+rhizo version=1
+title "Golden mix"
+theme "dark"
+
+style "risk" fill="#fee2e2" stroke="#ef4444"
+style "soft" line=dashed
+
+- "Launch" {
+    - "Users" { - "Personas"; - "Jobs" }
+    - "Pricing" class=risk note="Needs a decision" link="https://example.com/pricing"
+    - "Multi\nline label"
+}
+
+frame "Release" layout=layered direction=down {
+    node "Build" shape=pill
+    node "Tests pass?" id=check shape=diamond
+    node "Ship" shape=hexagon fill="#dcfce7"
+    edge build check ship label="go"
+    edge check build label="no" class=soft arrow=both
+}
+
+frame "Board" layout=free x=900 y=0 {
+    node "Idea" x=0 y=0
+    node "Question?" x=160 y=90 shape=ellipse
+    edge idea "Question?" line=dotted arrow=none
+}
+
+edge pricing check

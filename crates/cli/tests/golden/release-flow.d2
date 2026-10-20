@@ -1,0 +1,43 @@
+# Release pipeline
+direction: down
+
+classes: {
+  gate: {
+    style.fill: "#fef3c7"
+    style.stroke: "#d97706"
+  }
+}
+
+release_pipeline: "Release pipeline" {
+  merge_to_main: "Merge to main" {
+    style.border-radius: 20
+  }
+  build_artifacts: "Build artifacts"
+  unit_tests: "Unit tests"
+  integration_tests: "Integration tests"
+  green: "All green?" {
+    shape: diamond
+    class: gate
+  }
+  publish_crates: "Publish crates"
+  notify_team: "Notify team" {
+    style.border-radius: 20
+  }
+  open_incident: "Open incident" {
+    shape: hexagon
+  }
+}
+
+release_pipeline.merge_to_main -> release_pipeline.build_artifacts
+release_pipeline.build_artifacts -> release_pipeline.unit_tests
+release_pipeline.build_artifacts -> release_pipeline.integration_tests
+release_pipeline.unit_tests -> release_pipeline.green
+release_pipeline.integration_tests -> release_pipeline.green
+release_pipeline.green -> release_pipeline.publish_crates: "yes"
+release_pipeline.green -> release_pipeline.open_incident: "no" {
+  style.stroke-dash: 4
+}
+release_pipeline.publish_crates -> release_pipeline.notify_team
+release_pipeline.open_incident -> release_pipeline.build_artifacts: "retry" {
+  style.stroke-dash: 4
+}

@@ -1,0 +1,43 @@
+title: Product strategy 2027
+styles:
+  risk:
+    fill: '#fee2e2'
+    stroke: '#ef4444'
+  win:
+    fill: '#dcfce7'
+    stroke: '#22c55e'
+nodes:
+- label: Product strategy
+  children:
+  - label: Customers
+    children:
+    - Indie researchers
+    - Design teams
+    - label: Engineering orgs
+      children:
+      - Architecture docs
+      - Onboarding
+  - label: Differentiation
+    children:
+    - Text and canvas, one document
+    - label: Exports every format
+      class:
+      - win
+    - Native speed
+  - label: Risks
+    children:
+    - label: Scope creep
+      class:
+      - risk
+    - label: Mermaid parity expectations
+      class:
+      - risk
+  - label: Go to market
+    children:
+    - Open source core
+    - 'Pro: collaboration'
+    - Templates gallery
+  - label: Metrics
+    children:
+    - Weekly active docs
+    - Exports per user

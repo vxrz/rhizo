@@ -1,0 +1,25 @@
+rhizo version=1
+title "Release pipeline"
+
+style "gate" fill="#fef3c7" stroke="#d97706"
+
+frame "Release pipeline" layout=layered direction=down {
+    node "Merge to main" shape=pill
+    node "Build artifacts"
+    node "Unit tests"
+    node "Integration tests"
+    node "All green?" id=green class="gate" shape=diamond
+    node "Publish crates"
+    node "Notify team" shape=pill
+    node "Open incident" shape=hexagon
+
+    edge merge-to-main build-artifacts
+    edge build-artifacts unit-tests
+    edge build-artifacts integration-tests
+    edge unit-tests green
+    edge integration-tests green
+    edge green publish-crates label="yes"
+    edge green open-incident label="no" line=dashed
+    edge publish-crates notify-team
+    edge open-incident build-artifacts label="retry" line=dotted
+}

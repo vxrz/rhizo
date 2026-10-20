@@ -1,0 +1,56 @@
+# Golden mix
+direction: right
+
+classes: {
+  risk: {
+    style.fill: "#fee2e2"
+    style.stroke: "#ef4444"
+  }
+  soft: {
+    style.stroke-dash: 4
+  }
+}
+
+launch: "Launch"
+users: "Users"
+personas: "Personas"
+jobs: "Jobs"
+pricing: "Pricing" {
+  class: risk
+  link: "https://example.com/pricing"
+  tooltip: "Needs a decision"
+}
+multi_line_label: "Multi\nline label"
+
+release: "Release" {
+  build: "Build" {
+    style.border-radius: 20
+  }
+  check: "Tests pass?" {
+    shape: diamond
+  }
+  ship: "Ship" {
+    shape: hexagon
+    style.fill: "#dcfce7"
+  }
+}
+
+board: "Board" {
+  idea: "Idea"
+  question: "Question?" {
+    shape: oval
+  }
+}
+
+launch -> users
+launch -> pricing
+launch -> multi_line_label
+users -> personas
+users -> jobs
+release.build -> release.check: "go"
+release.check -> release.ship: "go"
+release.check <-> release.build: "no"
+board.idea -- board.question {
+  style.stroke-dash: 4
+}
+pricing -> release.check

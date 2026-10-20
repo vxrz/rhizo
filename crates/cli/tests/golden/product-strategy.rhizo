@@ -1,0 +1,34 @@
+rhizo version=1
+title "Product strategy 2027"
+
+style "risk" fill="#fee2e2" stroke="#ef4444"
+style "win" fill="#dcfce7" stroke="#22c55e"
+
+- "Product strategy" {
+    - "Customers" {
+        - "Indie researchers"
+        - "Design teams"
+        - "Engineering orgs" {
+            - "Architecture docs"
+            - "Onboarding"
+        }
+    }
+    - "Differentiation" {
+        - "Text and canvas, one document"
+        - "Exports every format" class="win"
+        - "Native speed"
+    }
+    - "Risks" {
+        - "Scope creep" class="risk"
+        - "Mermaid parity expectations" class="risk"
+    }
+    - "Go to market" {
+        - "Open source core"
+        - "Pro: collaboration"
+        - "Templates gallery"
+    }
+    - "Metrics" {
+        - "Weekly active docs"
+        - "Exports per user"
+    }
+}

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-32 -32 425.92 669" width="426" height="669" role="img" aria-labelledby="rz-title" font-family="Inter, &quot;SF Pro Text&quot;, -apple-system, &quot;Segoe UI&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif" class="rhizo">
+<title id="rz-title">Release pipeline</title>
+<desc>8 nodes, 9 connections. Made with rhizo.</desc>
+<defs>
+<marker id="rz-arrow-a1a1aa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M1,1.5 L9,5 L1,8.5 Z" fill="#a1a1aa"/></marker>
+</defs>
+<rect class="rz-background" x="-32" y="-32" width="425.92" height="669" fill="#ffffff"/>
+<g class="rz-frames">
+<g class="rz-frame" id="frame-release-pipeline"><rect x="0" y="0" width="361.92" height="605" rx="14" fill="#fafafa" stroke="#e4e4e7" stroke-width="1"/><text x="20" y="26.4" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.02em">Release pipeline</text></g>
+</g>
+<g class="rz-edges">
+<g class="rz-edge rz-link" data-from="merge-to-main" data-to="build-artifacts"><path d="M195.79,92 L205.36,131" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="build-artifacts" data-to="unit-tests"><path d="M193.36,168 C193.36,181 169.31,184.25 139.22,194 C109.13,203.75 73,200.5 73,207" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="build-artifacts" data-to="integration-tests"><path d="M205.36,168 L212.5,207" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="unit-tests" data-to="green"><path d="M73,244 C73,281.87 160.84,281.87 160.84,319.74" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="integration-tests" data-to="green"><path d="M212.5,244 C212.5,281.87 172.84,281.87 172.84,319.74" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="green" data-to="publish-crates"><path d="M160.84,388.26 C160.84,408.13 150.64,409.07 137.04,428 C123.43,446.93 106.42,446 106.42,464" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/><g class="rz-edge-label"><rect x="122.32" y="418" width="29.44" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="137.04" y="432.2" font-size="12" fill="#71717a" text-anchor="middle">yes</text></g></g>
+<g class="rz-edge rz-link" data-from="green" data-to="open-incident"><path d="M172.84,388.26 C172.84,408.13 194.52,409.07 215.79,428 C237.06,446.93 257.92,446 257.92,464" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="8 6.5" marker-end="url(#rz-arrow-a1a1aa)"/><g class="rz-edge-label"><rect x="204.31" y="418" width="22.96" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="215.79" y="432.2" font-size="12" fill="#71717a" text-anchor="middle">no</text></g></g>
+<g class="rz-edge rz-link" data-from="publish-crates" data-to="notify-team"><path d="M106.42,501 L107.17,540" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/></g>
+<g class="rz-edge rz-link" data-from="open-incident" data-to="build-artifacts"><path d="M269.92,464 C269.92,446 275.44,474 279.96,428 C282.97,397.33 285.83,313.75 288,280 C290.17,246.25 295.08,239.83 293,225.5 C290.92,211.17 288.14,203.58 275.53,194 C256.62,179.63 217.36,181 217.36,168" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="0.1 5.25" stroke-linecap="round" marker-end="url(#rz-arrow-a1a1aa)"/><g class="rz-edge-label"><rect x="270.58" y="270" width="34.84" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="288" y="284.2" font-size="12" fill="#71717a" text-anchor="middle">retry</text></g></g>
+</g>
+<g class="rz-nodes">
+<g class="rz-node rz-shape-pill rz-depth-0" id="node-merge-to-main"><rect x="129.79" y="55" width="132" height="37" rx="18.5" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="195.79" y="78.4" font-size="14" fill="#18181b" text-anchor="middle">Merge to main</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-build-artifacts"><rect x="146.86" y="131" width="117" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="205.36" y="154.4" font-size="14" fill="#18181b" text-anchor="middle">Build artifacts</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-unit-tests"><rect x="28" y="207" width="90" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="73" y="230.4" font-size="14" fill="#18181b" text-anchor="middle">Unit tests</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-integration-tests"><rect x="146" y="207" width="133" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="212.5" y="230.4" font-size="14" fill="#18181b" text-anchor="middle">Integration tests</text></g>
+<g class="rz-node rz-shape-diamond rz-depth-0 gate" id="node-green"><path d="M166.84,316 L227.84,354 L166.84,392 L105.84,354 Z" stroke-linejoin="round" fill="#fef3c7" stroke="#d97706" stroke-width="1.25"/><text x="166.84" y="358.9" font-size="14" fill="#18181b" text-anchor="middle">All green?</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-publish-crates"><rect x="46.92" y="464" width="119" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="106.42" y="487.4" font-size="14" fill="#18181b" text-anchor="middle">Publish crates</text></g>
+<g class="rz-node rz-shape-pill rz-depth-0" id="node-notify-team"><rect x="50.17" y="540" width="114" height="37" rx="18.5" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="107.17" y="563.4" font-size="14" fill="#18181b" text-anchor="middle">Notify team</text></g>
+<g class="rz-node rz-shape-hexagon rz-depth-0" id="node-open-incident"><path d="M206.87,464 L320.97,464 L333.92,482.5 L320.97,501 L206.87,501 L193.92,482.5 Z" stroke-linejoin="round" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="263.92" y="487.4" font-size="14" fill="#18181b" text-anchor="middle">Open incident</text></g>
+</g>
+</svg>
