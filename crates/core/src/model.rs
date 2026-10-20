@@ -60,6 +60,9 @@ pub enum LayoutKind {
     Layered,
     /// Uniform grid.
     Grid,
+    /// Network drawing: graph distance becomes drawing distance (stress
+    /// majorization). For graphs without a natural direction.
+    Force,
     /// Nodes keep their `x`/`y`; nothing is moved.
     Free,
 }
@@ -72,6 +75,7 @@ impl LayoutKind {
             LayoutKind::Tree => "tree",
             LayoutKind::Layered => "layered",
             LayoutKind::Grid => "grid",
+            LayoutKind::Force => "force",
             LayoutKind::Free => "free",
         }
     }
@@ -83,6 +87,7 @@ impl LayoutKind {
             "tree" | "org" | "outline" => LayoutKind::Tree,
             "layered" | "flow" | "flowchart" | "dag" | "graph" => LayoutKind::Layered,
             "grid" => LayoutKind::Grid,
+            "force" | "network" | "organic" | "stress" => LayoutKind::Force,
             "free" | "freeform" | "canvas" => LayoutKind::Free,
             _ => return None,
         })

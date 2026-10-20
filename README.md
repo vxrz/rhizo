@@ -63,7 +63,7 @@ rhizo files are [KDL v2](https://kdl.dev). Every statement is one line, nesting 
 | `style "name" fill="#..."` | A named style. Apply it with `class=name`. |
 | `title`, `theme`, `layout`, `direction` | Document settings. `layout` and `direction` apply to nodes outside frames. |
 
-**Layouts.** `mindmap` (balanced, branch colored), `tree` (tidy, org-chart style), `layered` (flowcharts and DAGs), `grid`, `free` (nodes keep `x`/`y`), and `auto`: layered if there are edges, mindmap if there is nesting, otherwise grid.
+**Layouts.** `mindmap` (balanced, branch colored), `tree` (tidy, org-chart style), `layered` (flowcharts and DAGs), `force` (networks: graph distance becomes drawing distance), `grid`, `free` (nodes keep `x`/`y`), and `auto`: layered if there are edges, mindmap if there is nesting, otherwise grid.
 
 **Node properties.** `id`, `class`, `shape` (`rect` `rounded` `pill` `ellipse` `circle` `diamond` `hexagon` `text`), `fill`, `stroke`, `text`, `stroke-width`, `font-size`, `font-weight`, `line` (`solid` `dashed` `dotted`), `x`, `y`, `note`, `link`, `tags`.
 

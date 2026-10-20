@@ -5,6 +5,7 @@
 //! [`layered`] for graphs, plus grid and free placement). Frames are then
 //! placed on one canvas and edges between frames are routed last.
 
+pub mod force;
 pub mod layered;
 pub mod path;
 pub mod resolve;
@@ -317,6 +318,7 @@ impl<'a> FrameLayout<'a> {
             LayoutKind::Tree => self.tree(),
             LayoutKind::Layered => self.layered(),
             LayoutKind::Grid => self.grid(),
+            LayoutKind::Force => self.force(),
             LayoutKind::Free | LayoutKind::Auto => self.free(),
         }
     }
@@ -672,6 +674,22 @@ impl<'a> FrameLayout<'a> {
                     r
                 }
             };
+        }
+        self.straight_edges();
+    }
+
+    fn force(&mut self) {
+        let size: Vec<(f32, f32)> = self.items.iter().map(|it| (it.size.width, it.size.height)).collect();
+        let mut edges: Vec<(usize, usize)> =
+            (0..self.items.len()).flat_map(|p| self.children[p].iter().map(move |&c| (p, c))).collect();
+        for e in self.doc.edges_in(&self.frame.id) {
+            if let (Some(&a), Some(&b)) = (self.index.get(&e.from), self.index.get(&e.to)) {
+                edges.push((a, b));
+            }
+        }
+        let centers = force::layout(&size, &edges, &force::Spacing { edge: 48.0, gap: 20.0 });
+        for (it, (cx, cy)) in self.items.iter_mut().zip(centers) {
+            it.rect = Rect::from_center(Point::new(cx, cy), it.size);
         }
         self.straight_edges();
     }

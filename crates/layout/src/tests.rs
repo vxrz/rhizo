@@ -168,3 +168,23 @@ fn big_mindmap_is_fast() {
     assert!(t.elapsed().as_millis() < 1500, "took {:?}", t.elapsed());
     assert_no_overlap(&d);
 }
+
+#[test]
+fn force_layout_frame() {
+    let d = diagram(
+        r#"
+        frame "Team" layout=force {
+            edge "Ada" "Grace" "Linus" "Ada"
+            edge "Grace" "Margaret"
+            node "Alone"
+        }
+        "#,
+    );
+    assert_eq!(d.frames[0].layout, LayoutKind::Force);
+    assert_no_overlap(&d);
+    assert_eq!(d.edges.len(), 4);
+    // Edges start and end on node outlines, not centers.
+    let e = &d.edges[0];
+    let a = node(&d, "ada").rect;
+    assert!(!a.inflate(-1.0, -1.0).contains(e.path.start));
+}

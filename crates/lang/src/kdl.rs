@@ -725,7 +725,7 @@ impl Parser {
     }
 }
 
-const LAYOUTS: &[&str] = &["auto", "mindmap", "tree", "layered", "grid", "free"];
+const LAYOUTS: &[&str] = &["auto", "mindmap", "tree", "layered", "grid", "force", "free"];
 const DIRECTIONS: &[&str] = &["right", "left", "down", "up"];
 
 #[cfg(test)]
