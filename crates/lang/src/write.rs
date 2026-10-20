@@ -24,7 +24,7 @@ pub fn kdl_string(s: &str) -> String {
     if is_bare(s) { s.to_string() } else { quoted(s) }
 }
 
-fn quoted(s: &str) -> String {
+pub(crate) fn quoted(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
     for c in s.chars() {
@@ -52,7 +52,7 @@ fn is_bare(s: &str) -> bool {
         && !matches!(s, "true" | "false" | "null" | "inf" | "nan")
 }
 
-fn num(v: f32) -> String {
+pub(crate) fn num(v: f32) -> String {
     if v.fract() == 0.0 && v.abs() < 1e9 {
         format!("{}", v as i64)
     } else {

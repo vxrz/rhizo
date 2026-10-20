@@ -15,11 +15,28 @@ pub const IMPLICIT_FRAME: &str = "main";
 /// when there are errors (bad edges are dropped), so tools can still show
 /// something while the user is typing.
 pub fn lower(file: &File) -> (Document, Vec<Diagnostic>) {
+    let l = lower_with_sources(file);
+    (l.document, l.diagnostics)
+}
+
+/// [`lower`], plus where each node and edge came from in the source.
+pub struct Lowered {
+    pub document: Document,
+    pub diagnostics: Vec<Diagnostic>,
+    /// Source span of each node's statement. Nodes created by an edge
+    /// reference have none.
+    pub node_spans: HashMap<NodeId, Span>,
+    /// Source span of the statement each edge came from, parallel to
+    /// `document.edges`. `edge a b c` gives two edges with the same span.
+    pub edge_spans: Vec<Span>,
+}
+
+pub fn lower_with_sources(file: &File) -> Lowered {
     let mut cx = Lower::default();
     cx.run(file);
     let mut seen = HashSet::new();
     cx.diags.retain(|d| seen.insert((d.message.clone(), d.span)));
-    (cx.doc, cx.diags)
+    Lowered { document: cx.doc, diagnostics: cx.diags, node_spans: cx.node_spans, edge_spans: cx.edge_spans }
 }
 
 #[derive(Default)]
@@ -30,6 +47,8 @@ struct Lower {
     reserved: HashSet<String>,
     taken: HashSet<String>,
     by_label: HashMap<String, Vec<NodeId>>,
+    node_spans: HashMap<NodeId, Span>,
+    edge_spans: Vec<Span>,
 }
 
 impl Lower {
@@ -186,6 +205,9 @@ impl Lower {
         }
         let nid = NodeId(id);
         self.by_label.entry(def.label.clone()).or_default().push(nid.clone());
+        if def.span.is_some() {
+            self.node_spans.insert(nid.clone(), def.span);
+        }
         self.doc.add_node(node).expect("ids are unique and parents exist");
         for c in &def.children {
             self.node(c, frame, Some(&nid));
@@ -238,7 +260,8 @@ impl Lower {
                     .cloned()
                     .or_else(|| other.and_then(|o| self.doc.node(o)).map(|n| n.frame.clone()))
                     .unwrap_or_else(|| self.implicit_frame());
-                let def = NodeDef { span, ..NodeDef::new(r) };
+                // No span: the node has no statement of its own in the source.
+                let def = NodeDef::new(r);
                 self.node(&def, &frame, None);
                 self.resolve(r, span).ok()
             }
@@ -275,6 +298,7 @@ impl Lower {
             prov: def.prov.clone(),
         };
         self.doc.add_edge(edge).expect("endpoints resolved");
+        self.edge_spans.push(def.span);
     }
 
     fn check_classes(&mut self) {

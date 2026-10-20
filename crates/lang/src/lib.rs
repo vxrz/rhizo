@@ -6,11 +6,13 @@
 
 pub mod ast;
 pub mod diag;
+pub mod edit;
 pub mod kdl;
 pub mod lower;
 pub mod write;
 
 pub use diag::{Diagnostic, Report, Severity};
+pub use edit::{EditError, Editor};
 pub use lower::{lower, raise};
 
 use rhizo_core::Document;
