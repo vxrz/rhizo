@@ -1,0 +1,29 @@
+# Woodpecker CI on the owner's self-hosted Forgejo. The GitHub workflow in .github/
+# stays for a future mirror.
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+
+steps:
+  - name: check
+    image: rust:1-bookworm
+    environment:
+      CARGO_TERM_COLOR: always
+      # No debug info: faster builds and far less memory when linking test binaries.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      # lld links the GPU viewer in a fraction of GNU ld's memory. Per target,
+      # so the WASM check keeps its own linker.
+      CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+    commands:
+      # Fonts: render tests measure real text. lld: see above.
+      - apt-get update -qq && apt-get install -y -qq --no-install-recommends fonts-dejavu-core lld
+      - rustup component add clippy rustfmt
+      - rustup target add wasm32-unknown-unknown
+      - cargo fmt --all --check
+      - cargo clippy --workspace --all-targets --locked -- -D warnings
+      - cargo test --workspace --locked
+      # Model, format, layout and interop stay free of native deps.
+      - cargo check --locked --target wasm32-unknown-unknown -p rhizo-core -p rhizo-lang -p rhizo-layout -p rhizo-interop
