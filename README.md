@@ -45,6 +45,12 @@ rhizo fmt idea.rhizo               # canonical formatting
 rhizo schema > rhizo.schema.json   # JSON Schema for the JSON/YAML forms
 ```
 
+A native viewer follows the file as you edit it, in any editor:
+
+```bash
+cargo run --release -p rhizo-app -- idea.rhizo   # scroll pans, cmd+scroll/pinch zooms, F fits, 0 = 100%
+```
+
 ## The format
 
 rhizo files are [KDL v2](https://kdl.dev). Every statement is one line, nesting means "child of", and labels double as ids.

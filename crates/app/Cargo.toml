@@ -1,0 +1,23 @@
+[package]
+name = "rhizo-app"
+description = "Native viewer for rhizo diagrams"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rhizo-view"
+path = "src/main.rs"
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-lang.workspace = true
+rhizo-layout.workspace = true
+rhizo-render.workspace = true
+# vello_svg 0.11 is built against vello 0.10, which pins wgpu 29.
+vello = "0.10"
+vello_svg = "0.11"
+winit = "0.30.13"
+pollster = "1.0"
+miette = { workspace = true, features = ["fancy"] }
