@@ -1,0 +1,22 @@
+rhizo version=1
+title "Support ticket"
+layout "layered"
+direction "down"
+
+// Edges name nodes by label or id; names that do not exist yet become nodes.
+// In the viewer, any drag in a flowchart draws a new edge.
+node "Ticket opened" shape=pill
+node "Known issue?" id=known shape=diamond
+node "Escalate to engineering" id=escalate shape=hexagon class=hot
+node "Closed" shape=pill
+
+edge "Ticket opened" "Triage" known
+edge known "Send help article" label="yes"
+edge known "Reproduce" label="no"
+edge "Reproduce" escalate label="can't fix"
+edge "Reproduce" "Fix and reply" label="fixed"
+edge "Send help article" "Closed"
+edge "Fix and reply" "Closed"
+edge escalate "Fix and reply" line=dashed label="patch"
+
+style "hot" fill="#fee2e2" stroke="#dc2626"

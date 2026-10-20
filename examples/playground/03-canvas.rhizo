@@ -1,0 +1,15 @@
+rhizo version=1
+title "Sprint board"
+layout "free"
+
+// Free layout: nodes keep x/y. Drag them in the viewer and watch x= and y=
+// change in this file. alt+drag from one note to another connects them.
+node "Login is slow" x=269 y=14 fill="#fde68a"
+node "Profile the auth service" x=-71 y=37
+node "Cache user sessions" x=470 y=0 shape=rounded fill="#dcfce7"
+node "Ask DBA about indexes" x=168 y=130 shape=ellipse
+node "Release notes" x=-20 y=178 shape=text
+
+edge "Login is slow" "Profile the auth service"
+edge "Profile the auth service" "Cache user sessions"
+edge "Profile the auth service" "Ask DBA about indexes" line=dotted arrow=none

@@ -1,0 +1,29 @@
+rhizo version=1
+title "Trip to Japan"
+
+// A mindmap: nesting makes children. Try in the viewer:
+//   click a node, Tab adds a child, Enter a sibling, type, Enter
+//   drag a node onto another to re-parent it; F2 renames; cmd+Z undoes
+- "Trip to Japan" {
+    - "Tokyo" {
+        - "Shibuya"
+        - "Asakusa" note="Senso-ji early in the morning"
+        - "Akihabara"
+    }
+    - "Kyoto" {
+        - "Fushimi Inari"
+        - "Arashiyama"
+    }
+    - "Food" {
+        - "Ramen"
+        - "Kaiseki dinner" fill="#fef3c7"
+        - "JR Pass" link="https://japanrailpass.net"
+    }
+    - "Logistics" {
+        - "Pocket Wi-Fi"
+        - "Visa?" class=todo
+    }
+    - "Sushi at Tsukiji"
+}
+
+style "todo" fill="#fee2e2" stroke="#ef4444"

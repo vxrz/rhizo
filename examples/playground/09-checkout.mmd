@@ -1,0 +1,13 @@
+---
+title: Checkout
+---
+flowchart LR
+    A[Cart] --> B{Logged in?}
+    B -->|yes| C([Pay])
+    B -- no --> D(Login) -.-> B
+    C & D --> E((Done)):::ok
+    subgraph pay [Payment]
+        direction TB
+        P1["Card"] ==> P2["3-D Secure"]
+    end
+    classDef ok fill:#dcfce7,stroke:#16a34a

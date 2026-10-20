@@ -1,0 +1,29 @@
+rhizo version=1
+title "Launch planning"
+theme "paper"
+
+// One document, several frames, each with its own layout.
+// Edges at the bottom connect across frames.
+frame "Why" layout=mindmap {
+    - "Launch v1" {
+        - "Users asked for exports" {
+            - "Revenue goal"
+        }
+        - "Competitor ships in Q3"
+    }
+}
+
+frame "How" layout=layered direction=down {
+    edge "Freeze scope" "Beta" "Fix blockers" "Release"
+    edge "Beta" "Collect feedback" "Fix blockers"
+}
+
+frame "Who" layout=grid columns=2 {
+    node "Design" shape=pill
+    node "Engineering" shape=pill
+    node "Support" shape=pill
+    node "Marketing" shape=pill
+}
+
+edge "Revenue goal" "Release" line=dashed
+edge "Support" "Collect feedback" line=dotted arrow=none

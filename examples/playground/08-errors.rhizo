@@ -1,0 +1,11 @@
+rhizo version=1
+title "Spot the mistakes"
+
+// `rhizo check` explains each problem with a pointer into this file.
+- "Root" shap=diamond {
+    - "Child" fill="#zzz"
+}
+edge root chlid
+frame "Flow" layout=layerd {
+    node "A"
+}

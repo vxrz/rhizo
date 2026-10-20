@@ -1,0 +1,19 @@
+rhizo version=1
+title "Who influenced whom"
+layout "force"
+
+// Force layout: graph distance becomes drawing distance. Good for networks
+// and knowledge graphs. Add a person with one more edge line and save.
+edge "Ada Lovelace" "Charles Babbage" arrow=none
+edge "Alan Turing" "Ada Lovelace"
+edge "Alan Turing" "Alonzo Church" arrow=both
+edge "John von Neumann" "Alan Turing"
+edge "Grace Hopper" "John von Neumann"
+edge "Claude Shannon" "Alan Turing"
+edge "Claude Shannon" "John von Neumann"
+edge "Edsger Dijkstra" "John von Neumann"
+edge "Donald Knuth" "Edsger Dijkstra"
+edge "Barbara Liskov" "Edsger Dijkstra"
+edge "Margaret Hamilton" "Grace Hopper"
+edge "Dennis Ritchie" "Ken Thompson" arrow=both
+edge "Ken Thompson" "John von Neumann"

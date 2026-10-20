@@ -1,0 +1,13 @@
+rhizo version=1
+title "Org chart"
+layout "tree"
+direction "down"
+
+- "CEO" {
+    - "CTO" {
+        - "Platform" { - "Infra"; - "Developer tools" }
+        - "Product engineering" { - "Web"; - "Mobile" }
+    }
+    - "CFO" { - "Finance"; - "Legal" }
+    - "COO" { - "Support"; - "Operations" }
+}
