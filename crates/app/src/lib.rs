@@ -4,6 +4,7 @@
 //! [`draw`] mirrors the SVG writer, so the window matches the exports.
 
 pub mod draw;
+pub mod interact;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -26,6 +27,9 @@ pub struct Built {
     pub background: Color,
     pub title: Option<String>,
     pub nodes: usize,
+    /// The source the diagram was built from, and its syntax.
+    pub source: String,
+    pub syntax: Syntax,
 }
 
 /// Loads documents and builds scenes. Keeps fonts between reloads.
@@ -68,6 +72,8 @@ impl Engine {
             title: doc.title.clone(),
             nodes: doc.nodes.len(),
             diagram,
+            source: src.to_string(),
+            syntax,
         })
     }
 }

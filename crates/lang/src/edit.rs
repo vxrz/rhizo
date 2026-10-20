@@ -15,6 +15,17 @@ use crate::diag::Diagnostic;
 use crate::lower::{Lowered, lower_with_sources};
 use crate::write::{kdl_string, num, quoted};
 
+/// Where [`Editor::reparent`] puts a node.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Placement {
+    /// Last child of this node.
+    Child(NodeId),
+    /// Sibling right before this node.
+    Before(NodeId),
+    /// Sibling right after this node.
+    After(NodeId),
+}
+
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum EditError {
     #[error("no node `{0}`")]
@@ -25,6 +36,8 @@ pub enum EditError {
     NoStatement(NodeId),
     #[error("the edit would make the document invalid: {0}")]
     Invalid(String),
+    #[error("`{0}` cannot move under itself or its own descendants")]
+    Cycle(NodeId),
 }
 
 /// One replacement: `start..end` of the old source becomes `text`.
@@ -205,8 +218,7 @@ impl Editor {
         let mut splices = Vec::new();
         // The statement of the top-most deleted node holds its descendants.
         if let Some(kn) = self.statement(id) {
-            let (start, end) = whole_lines(&self.src, kn.span().offset(), kn.span().offset() + kn.span().len());
-            splices.push(Splice { start, end, text: String::new() });
+            splices.push(self.removal(id, kn));
         }
         // Edge statements, grouped by their source span.
         let mut statements: Vec<(usize, Vec<usize>)> = Vec::new();
@@ -267,7 +279,116 @@ impl Editor {
         self.apply(splices)
     }
 
+    /// Moves a node (with its subtree) to a new place in the outline.
+    pub fn reparent(&mut self, id: &NodeId, to: &Placement) -> Result<(), EditError> {
+        let node = self.node_or_err(id)?;
+        let label = node.label.clone();
+        let target = match to {
+            Placement::Child(t) | Placement::Before(t) | Placement::After(t) => t,
+        };
+        self.node_or_err(target)?;
+        let doc = self.document();
+        if target == id || doc.ancestors(target).any(|a| a == id) {
+            return Err(EditError::Cycle(id.clone()));
+        }
+        // Dropping a node where it already is changes nothing.
+        let siblings = |of: &NodeId| -> Vec<NodeId> {
+            match &doc.nodes[of].parent {
+                Some(p) => doc.nodes[p].children.clone(),
+                None => doc.roots(&doc.nodes[of].frame).map(|n| n.id.clone()).collect(),
+            }
+        };
+        let same_parent =
+            doc.nodes[id].parent == doc.nodes[target].parent && doc.nodes[id].frame == doc.nodes[target].frame;
+        let pos = |list: &[NodeId], n: &NodeId| list.iter().position(|x| x == n);
+        let already = match to {
+            Placement::Child(t) => doc.nodes[t].children.last() == Some(id),
+            Placement::After(t) => {
+                same_parent && {
+                    let l = siblings(t);
+                    pos(&l, t).map(|i| i + 1) == pos(&l, id)
+                }
+            }
+            Placement::Before(t) => {
+                same_parent && {
+                    let l = siblings(t);
+                    pos(&l, id).map(|i| i + 1) == pos(&l, t)
+                }
+            }
+        };
+        if already {
+            return Ok(());
+        }
+        let tkn = self.statement(target).ok_or_else(|| EditError::NoStatement(target.clone()))?;
+        let mut splices = Vec::new();
+        // The node's own text, or a fresh statement for an edge-created node.
+        let (text, old_indent) = match self.statement(id) {
+            Some(kn) => {
+                let (start, end) = (kn.span().offset(), kn.span().offset() + kn.span().len());
+                let (_, le) = whole_lines(&self.src, start, end);
+                splices.push(self.removal(id, kn));
+                // A trailing `// comment` on the node's line moves with it.
+                let tail = self.src[end..le.max(end)].trim_end_matches('\n');
+                let text = if tail.trim_start().starts_with("//") {
+                    // Span plus tail is the original line, spacing included.
+                    format!("{}{}", &self.src[start..end], tail.trim_end())
+                } else {
+                    self.src[start..end].trim_end().to_string()
+                };
+                (text, line_indent(&self.src, start))
+            }
+            None => (format!("- {} id={}", quoted(&label), kdl_string(id.as_str())), String::new()),
+        };
+        let reindent = |new_indent: &str| -> String {
+            text.lines()
+                .enumerate()
+                .map(|(i, l)| match l.strip_prefix(old_indent.as_str()) {
+                    Some(rest) if i > 0 => format!("{new_indent}{rest}"),
+                    _ => l.to_string(),
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let (t_start, t_end) = (tkn.span().offset(), tkn.span().offset() + tkn.span().len());
+        let t_indent = line_indent(&self.src, t_start);
+        let insert = match to {
+            Placement::Child(_) => insert_child(&self.src, tkn, &reindent(&format!("{t_indent}    "))),
+            Placement::Before(_) => {
+                let line_start = self.src[..t_start].rfind('\n').map_or(0, |i| i + 1);
+                if self.src[line_start..t_start].trim().is_empty() {
+                    Splice { start: line_start, end: line_start, text: format!("{t_indent}{}\n", reindent(&t_indent)) }
+                } else {
+                    Splice { start: t_start, end: t_start, text: format!("{}; ", reindent(&t_indent)) }
+                }
+            }
+            Placement::After(_) => {
+                let (_, le) = whole_lines(&self.src, t_start, t_end);
+                if le > t_end && self.src[t_end..le].trim().is_empty() {
+                    Splice { start: le, end: le, text: format!("{t_indent}{}\n", reindent(&t_indent)) }
+                } else {
+                    let end = self.src[t_start..t_end].trim_end().len() + t_start;
+                    Splice { start: end, end, text: format!("; {}", reindent(&t_indent)) }
+                }
+            }
+        };
+        splices.push(insert);
+        self.apply(splices)
+    }
+
     // ------------------------------------------------------------------
+
+    /// Removes a node's statement. When it is the only statement in its
+    /// parent's block, the whole `{ … }` goes, so no empty braces remain.
+    fn removal(&self, id: &NodeId, kn: &KdlNode) -> Splice {
+        let parent = self.document().nodes[id].parent.as_ref().and_then(|p| self.statement(p));
+        if let Some(pk) = parent.filter(|pk| pk.children().is_some_and(|c| c.nodes().len() == 1)) {
+            let start = after_entries(pk);
+            let end = pk.span().offset() + pk.span().len();
+            return Splice { start, end, text: String::new() };
+        }
+        let (start, end) = whole_lines(&self.src, kn.span().offset(), kn.span().offset() + kn.span().len());
+        Splice { start, end, text: String::new() }
+    }
 
     fn node_or_err(&self, id: &NodeId) -> Result<&rhizo_core::Node, EditError> {
         self.document().node(id).ok_or_else(|| EditError::UnknownNode(id.clone()))
@@ -338,7 +459,8 @@ impl Editor {
         if splices.is_empty() {
             return Ok(());
         }
-        splices.sort_by_key(|s| std::cmp::Reverse(s.start));
+        // Ties: the removal (wider) first, then the insertion at its start.
+        splices.sort_by_key(|s| std::cmp::Reverse((s.start, s.end)));
         let mut src = self.src.clone();
         let mut limit = usize::MAX;
         for s in &splices {
@@ -391,15 +513,24 @@ fn whole_lines(src: &str, start: usize, end: usize) -> (usize, usize) {
     let line_end = rest.find('\n').map_or(src.len(), |i| end + i + 1);
     let before_blank = src[line_start..start].trim().is_empty();
     let after = src[end..line_end].trim();
-    if before_blank && (after.is_empty() || after == ";") {
+    // A trailing `// comment` belongs to the statement it follows.
+    if before_blank && (after.is_empty() || after == ";" || after.starts_with("//")) {
         (line_start, line_end)
     } else {
-        // Shares the line (`- "A"; - "B"`): take the node and its `;`.
-        let semi = rest
-            .find(|c: char| !c.is_whitespace())
-            .filter(|&i| rest[i..].starts_with(';'))
-            .map_or(end, |i| end + i + 1);
-        (start, semi)
+        // Shares the line (`- "A"; - "B"`): take the node with the `;` after
+        // it and the spaces after that, or else the `;` before it.
+        let end = start + src[start..end].trim_end().len();
+        let rest = &src[end..];
+        if let Some(i) = rest.find(|c: char| !c.is_whitespace()).filter(|&i| rest[i..].starts_with(';')) {
+            let after = &rest[i + 1..];
+            let spaces = after.len() - after.trim_start_matches([' ', '\t']).len();
+            return (start, end + i + 1 + spaces);
+        }
+        let before = src[..start].trim_end_matches([' ', '\t']);
+        if before.ends_with(';') {
+            return (before.len() - 1, end);
+        }
+        (start, end)
     }
 }
 
@@ -585,6 +716,82 @@ edge pricing build
         let before = e.source().to_string();
         assert!(e.add_node(&FrameId::from("ghost"), "x").is_err());
         assert_eq!(e.source(), before);
+    }
+
+    #[test]
+    fn reparent_moves_subtrees_and_reindents() {
+        let mut e = ed();
+        e.reparent(&id("users"), &Placement::Child(id("pricing"))).unwrap();
+        assert!(
+            e.source()
+                .contains("    - \"Pricing\" class=risk {\n        - \"Users\" { - \"Personas\"; - \"Jobs\" }\n    }"),
+            "{}",
+            e.source()
+        );
+        assert_eq!(e.document().nodes[&id("users")].parent.as_ref(), Some(&id("pricing")));
+        assert_eq!(e.document().nodes[&id("personas")].parent.as_ref(), Some(&id("users")));
+        assert!(e.source().contains("// A comment that must survive every edit."));
+
+        let mut e = ed();
+        e.reparent(&id("pricing"), &Placement::Before(id("users"))).unwrap();
+        let order: Vec<&str> = e.document().nodes[&id("root")].children.iter().map(|c| c.as_str()).collect();
+        assert_eq!(order, vec!["pricing", "users"]);
+        assert!(
+            e.source().contains("    - \"Pricing\" class=risk   // trailing comment\n    - \"Users\""),
+            "{}",
+            e.source()
+        );
+
+        let mut e = ed();
+        e.reparent(&id("personas"), &Placement::After(id("jobs"))).unwrap();
+        let order: Vec<&str> = e.document().nodes[&id("users")].children.iter().map(|c| c.as_str()).collect();
+        assert_eq!(order, vec!["jobs", "personas"]);
+    }
+
+    #[test]
+    fn reparent_multiline_reindents_every_line() {
+        let src = "- \"Root\" {\n    - \"A\" {\n        - \"A1\"\n    }\n    - \"B\"\n}\n";
+        let mut e = Editor::open(src);
+        e.reparent(&id("a"), &Placement::Child(id("b"))).unwrap();
+        assert_eq!(
+            e.source(),
+            "- \"Root\" {\n    - \"B\" {\n        - \"A\" {\n            - \"A1\"\n        }\n    }\n}\n"
+        );
+        assert_eq!(e.document().nodes[&id("a1")].parent.as_ref(), Some(&id("a")));
+        assert!(e.undo());
+        assert_eq!(e.source(), src);
+    }
+
+    #[test]
+    fn reparent_refuses_cycles_and_noops() {
+        let mut e = ed();
+        assert_eq!(e.reparent(&id("users"), &Placement::Child(id("personas"))), Err(EditError::Cycle(id("users"))));
+        assert_eq!(e.reparent(&id("root"), &Placement::Child(id("root"))), Err(EditError::Cycle(id("root"))));
+        e.reparent(&id("pricing"), &Placement::After(id("users"))).unwrap();
+        assert_eq!(e.source(), SRC, "already there");
+        assert!(!e.can_undo());
+    }
+
+    #[test]
+    fn removals_leave_no_empty_blocks_or_double_spaces() {
+        let src = "- \"Root\" {\n    - \"Solo\" {\n        - \"Only\"\n    }\n    - \"Row\" { - \"A\"; - \"B\"; - \"C\" }\n    - \"Other\"\n}\n";
+        let mut e = Editor::open(src);
+        e.reparent(&id("only"), &Placement::Child(id("other"))).unwrap();
+        assert!(e.source().contains("    - \"Solo\"\n"), "{}", e.source());
+        assert!(e.source().contains("- \"Other\" {\n        - \"Only\"\n    }"), "{}", e.source());
+
+        let mut e = Editor::open(src);
+        e.delete(&id("b")).unwrap();
+        assert!(e.source().contains("{ - \"A\"; - \"C\" }"), "{}", e.source());
+        e.delete(&id("c")).unwrap();
+        assert!(e.source().contains("{ - \"A\" }"), "{}", e.source());
+        e.delete(&id("a")).unwrap();
+        assert!(e.source().contains("    - \"Row\"\n"), "{}", e.source());
+
+        let mut e = Editor::open(src);
+        e.reparent(&id("a"), &Placement::After(id("other"))).unwrap();
+        assert!(e.source().contains("{ - \"B\"; - \"C\" }"), "{}", e.source());
+        assert!(e.source().contains("    - \"Other\"\n    - \"A\"\n"), "{}", e.source());
     }
 
     #[test]

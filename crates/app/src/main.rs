@@ -1,14 +1,19 @@
-//! `rhizo-view FILE [--theme light|dark|paper]`: a live, read-only window
-//! onto a rhizo document. Edit the file anywhere; the window follows.
+//! `rhizo-view FILE [--theme light|dark|paper]`: a live window onto a rhizo
+//! document. Edit the file anywhere and the window follows; select and drag
+//! nodes in the window and the file follows (KDL files only).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
 
-use rhizo_app::vello::kurbo::{Affine, Vec2};
+use rhizo_app::interact::{self, DragMode};
+use rhizo_app::vello::kurbo::{Affine, Line, Rect, RoundedRect, Stroke, Vec2};
+use rhizo_app::vello::peniko::Fill;
 use rhizo_app::vello::util::{RenderContext, RenderSurface};
 use rhizo_app::vello::{AaConfig, RenderParams, Renderer, RendererOptions, Scene, wgpu};
 use rhizo_app::{Built, Engine, peniko_color};
+use rhizo_core::{Color, NodeId, Point};
+use rhizo_lang::{EditError, Editor, Placement, Syntax};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
@@ -16,6 +21,16 @@ use winit::keyboard::{Key, ModifiersState, NamedKey};
 use winit::window::{Window, WindowId};
 
 const MARGIN: f64 = 24.0;
+/// Selection and drop indicators: the brand indigo.
+const ACCENT: Color = Color::hex(0x6366f1);
+
+struct NodeDrag {
+    id: NodeId,
+    mode: DragMode,
+    start: Point,
+    now: Point,
+    target: Option<Placement>,
+}
 
 enum Reload {
     Built(Box<Built>, Duration),
@@ -45,6 +60,10 @@ struct App {
     drag_from: Option<Vec2>,
     last_click: Option<(Instant, Vec2)>,
     modifiers: ModifiersState,
+    /// Present for KDL files; edits go through it and are written back.
+    editor: Option<Editor>,
+    selected: Option<NodeId>,
+    node_drag: Option<NodeDrag>,
 }
 
 impl App {
@@ -90,13 +109,203 @@ impl App {
         self.redraw();
     }
 
+    /// Window pixels → diagram coordinates.
+    fn to_diagram(&self, p: Vec2) -> Option<Point> {
+        let b = &self.built.as_ref()?.diagram.bounds;
+        let s = (p - self.camera.offset) / self.camera.zoom;
+        Some(Point::new(s.x as f32 + b.x, s.y as f32 + b.y))
+    }
+
+    /// Runs an edit and writes the result back to the file.
+    fn edit(&mut self, f: impl FnOnce(&mut Editor) -> Result<(), EditError>) {
+        let Some(editor) = &mut self.editor else {
+            eprintln!("editing works on .rhizo/.kdl files; this one is read-only here");
+            return;
+        };
+        match f(editor) {
+            Ok(()) => self.save(),
+            Err(e) => eprintln!("{e}"),
+        }
+    }
+
+    /// Atomic write: the watcher never sees a half-written file.
+    fn save(&self) {
+        let Some(editor) = &self.editor else { return };
+        let name = self.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let tmp = self.path.with_file_name(format!(".{name}.rhizo-tmp"));
+        let result = std::fs::write(&tmp, editor.source()).and_then(|()| std::fs::rename(&tmp, &self.path));
+        if let Err(e) = result {
+            eprintln!("cannot save {}: {e}", self.path.display());
+        }
+    }
+
+    fn press(&mut self) {
+        let hit = self.to_diagram(self.cursor).and_then(|p| {
+            let built = self.built.as_ref()?;
+            let n = interact::hit(&built.diagram, p)?;
+            Some((n.id.clone(), interact::drag_mode(&built.diagram, n), p))
+        });
+        match hit {
+            Some((id, mode, p)) => {
+                self.selected = Some(id.clone());
+                self.node_drag = Some(NodeDrag { id, mode, start: p, now: p, target: None });
+            }
+            None => {
+                self.selected = None;
+                self.drag_from = Some(self.cursor);
+            }
+        }
+        self.redraw();
+    }
+
+    fn drag_to(&mut self, p: Point) {
+        let (Some(drag), Some(built)) = (&mut self.node_drag, &self.built) else { return };
+        drag.now = p;
+        drag.target = match (drag.mode, &self.editor) {
+            (DragMode::Outline, Some(ed)) => interact::drop_target(&built.diagram, ed.document(), &drag.id, p),
+            _ => None,
+        };
+        self.redraw();
+    }
+
+    fn release(&mut self) {
+        self.drag_from = None;
+        let Some(drag) = self.node_drag.take() else { return };
+        let delta = Point::new(drag.now.x - drag.start.x, drag.now.y - drag.start.y);
+        // A click, not a drag: selecting was all it did.
+        if delta.x.hypot(delta.y) * (self.camera.zoom as f32) < 4.0 {
+            self.redraw();
+            return;
+        }
+        match drag.mode {
+            DragMode::Move => {
+                let pos = match (&self.built, &self.editor) {
+                    (Some(b), Some(ed)) => interact::free_position(&b.diagram, ed.document(), &drag.id, delta),
+                    _ => None,
+                };
+                if let Some(pos) = pos {
+                    self.edit(|e| e.move_node(&drag.id, pos.x, pos.y));
+                }
+            }
+            DragMode::Outline => {
+                if let Some(target) = drag.target {
+                    self.edit(|e| e.reparent(&drag.id, &target));
+                }
+            }
+            DragMode::Fixed => {}
+        }
+        self.redraw();
+    }
+
+    /// Selection, drag ghost and drop indicator, in scene coordinates.
+    fn overlay(&self) -> Option<Scene> {
+        let built = self.built.as_ref()?;
+        let b = built.diagram.bounds;
+        let to_scene = |r: rhizo_core::Rect| {
+            Rect::new((r.x - b.x) as f64, (r.y - b.y) as f64, (r.right() - b.x) as f64, (r.bottom() - b.y) as f64)
+        };
+        let node = |id: &NodeId| built.diagram.nodes.iter().find(|n| &n.id == id);
+        let accent = peniko_color(ACCENT);
+        let mut s = Scene::new();
+        let width = 2.0 / self.camera.zoom * self.scale_factor();
+        if let Some(n) = self.selected.as_ref().and_then(node) {
+            let r = RoundedRect::from_rect(to_scene(n.rect).inflate(4.0, 4.0), 10.0);
+            s.stroke(&Stroke::new(width), Affine::IDENTITY, accent, None, &r);
+        }
+        if let Some(drag) = &self.node_drag {
+            let moved = (drag.now.x - drag.start.x).hypot(drag.now.y - drag.start.y) * (self.camera.zoom as f32) >= 4.0;
+            if let (Some(n), true, false) = (node(&drag.id), moved, drag.mode == DragMode::Fixed) {
+                let ghost = to_scene(n.rect.translate(drag.now.x - drag.start.x, drag.now.y - drag.start.y));
+                let r = RoundedRect::from_rect(ghost, 8.0);
+                let mut tint = ACCENT;
+                tint.a = 24;
+                s.fill(Fill::NonZero, Affine::IDENTITY, peniko_color(tint), None, &r);
+                s.stroke(
+                    &Stroke::new(width).with_dashes(0.0, [6.0 * width, 4.0 * width]),
+                    Affine::IDENTITY,
+                    accent,
+                    None,
+                    &r,
+                );
+            }
+            if let Some(target) = &drag.target {
+                let (Placement::Child(t) | Placement::Before(t) | Placement::After(t)) = target;
+                if let Some(n) = node(t) {
+                    let r = to_scene(n.rect);
+                    let vertical = self.editor.as_ref().is_some_and(|ed| {
+                        interact::siblings_stack_vertically(
+                            ed.document(),
+                            n,
+                            built
+                                .diagram
+                                .frames
+                                .iter()
+                                .find(|f| f.id == n.frame)
+                                .map_or(rhizo_core::LayoutKind::Mindmap, |f| f.layout),
+                        )
+                    });
+                    let gap = 5.0;
+                    let thick = Stroke::new(width * 2.0);
+                    match target {
+                        Placement::Child(_) => {
+                            let rr = RoundedRect::from_rect(r.inflate(6.0, 6.0), 12.0);
+                            s.stroke(&thick, Affine::IDENTITY, accent, None, &rr);
+                        }
+                        Placement::Before(_) if vertical => {
+                            s.stroke(
+                                &thick,
+                                Affine::IDENTITY,
+                                accent,
+                                None,
+                                &Line::new((r.x0, r.y0 - gap), (r.x1, r.y0 - gap)),
+                            );
+                        }
+                        Placement::After(_) if vertical => {
+                            s.stroke(
+                                &thick,
+                                Affine::IDENTITY,
+                                accent,
+                                None,
+                                &Line::new((r.x0, r.y1 + gap), (r.x1, r.y1 + gap)),
+                            );
+                        }
+                        Placement::Before(_) => {
+                            s.stroke(
+                                &thick,
+                                Affine::IDENTITY,
+                                accent,
+                                None,
+                                &Line::new((r.x0 - gap, r.y0), (r.x0 - gap, r.y1)),
+                            );
+                        }
+                        Placement::After(_) => {
+                            s.stroke(
+                                &thick,
+                                Affine::IDENTITY,
+                                accent,
+                                None,
+                                &Line::new((r.x1 + gap, r.y0), (r.x1 + gap, r.y1)),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        Some(s)
+    }
+
     fn render(&mut self) {
+        let overlay = self.overlay();
         let (Some(gpu), Some(built)) = (&mut self.gpu, &self.built) else { return };
         let (w, h) = (gpu.surface.config.width, gpu.surface.config.height);
         let device = &self.cx.devices[gpu.surface.dev_id];
         let mut scene = Scene::new();
         let cam = self.camera;
-        scene.append(&built.scene, Some(Affine::translate(cam.offset) * Affine::scale(cam.zoom)));
+        let view = Affine::translate(cam.offset) * Affine::scale(cam.zoom);
+        scene.append(&built.scene, Some(view));
+        if let Some(overlay) = &overlay {
+            scene.append(overlay, Some(view));
+        }
         let params = RenderParams {
             base_color: peniko_color(built.background),
             width: w,
@@ -139,6 +348,18 @@ impl App {
                 Some(t) => format!("{t} · {name}"),
                 None => name,
             });
+        }
+        // Our own saves come back here too; keep the editor (and its undo
+        // history) when the file is what it already holds.
+        if built.syntax != Syntax::Kdl {
+            self.editor = None;
+        } else if self.editor.as_ref().map(Editor::source) != Some(built.source.as_str()) {
+            self.editor = Some(Editor::open(built.source.clone()));
+        }
+        if let Some(id) = &self.selected {
+            if !built.diagram.nodes.iter().any(|n| &n.id == id) {
+                self.selected = None;
+            }
         }
         self.built = Some(built);
         if first { self.fit() } else { self.redraw() }
@@ -192,6 +413,13 @@ impl ApplicationHandler<Reload> for App {
             WindowEvent::ModifiersChanged(m) => self.modifiers = m.state(),
             WindowEvent::CursorMoved { position, .. } => {
                 let p = Vec2::new(position.x, position.y);
+                if self.node_drag.is_some() {
+                    self.cursor = p;
+                    if let Some(d) = self.to_diagram(p) {
+                        self.drag_to(d);
+                    }
+                    return;
+                }
                 if let Some(from) = self.drag_from {
                     self.camera.offset += p - from;
                     self.drag_from = Some(p);
@@ -206,13 +434,17 @@ impl ApplicationHandler<Reload> for App {
                         now - t < Duration::from_millis(350) && (at - self.cursor).hypot() < 6.0
                     });
                     self.last_click = Some((now, self.cursor));
-                    if double {
+                    let on_node = self
+                        .to_diagram(self.cursor)
+                        .zip(self.built.as_ref())
+                        .is_some_and(|(p, b)| interact::hit(&b.diagram, p).is_some());
+                    if double && !on_node {
                         self.fit();
                     } else {
-                        self.drag_from = Some(self.cursor);
+                        self.press();
                     }
                 }
-                ElementState::Released => self.drag_from = None,
+                ElementState::Released => self.release(),
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 let zooming = self.modifiers.super_key() || self.modifiers.control_key();
@@ -239,6 +471,18 @@ impl ApplicationHandler<Reload> for App {
                     Key::Character("=" | "+") => self.zoom_at(1.25, center),
                     Key::Character("-") => self.zoom_at(0.8, center),
                     Key::Named(NamedKey::Escape) if self.modifiers.super_key() => event_loop.exit(),
+                    Key::Named(NamedKey::Escape) => {
+                        self.selected = None;
+                        self.node_drag = None;
+                        self.redraw();
+                    }
+                    Key::Character("z" | "Z") if self.modifiers.super_key() || self.modifiers.control_key() => {
+                        let redo = self.modifiers.shift_key();
+                        let changed = self.editor.as_mut().is_some_and(|e| if redo { e.redo() } else { e.undo() });
+                        if changed {
+                            self.save();
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -280,6 +524,9 @@ fn main() {
             "-h" | "--help" => {
                 println!("usage: rhizo-view FILE [--theme {}]", rhizo_app::theme_names().join("|"));
                 println!("scroll to pan · cmd/ctrl+scroll or pinch to zoom · F or double-click to fit · 0 for 100%");
+                println!(
+                    "click selects · drag moves (free frames) or re-parents (mindmaps, trees) · cmd+Z / shift+cmd+Z"
+                );
                 return;
             }
             _ if path.is_none() => path = Some(PathBuf::from(a)),
@@ -311,6 +558,9 @@ fn main() {
         drag_from: None,
         last_click: None,
         modifiers: ModifiersState::empty(),
+        editor: None,
+        selected: None,
+        node_drag: None,
     };
     event_loop.run_app(&mut app).expect("event loop");
 }

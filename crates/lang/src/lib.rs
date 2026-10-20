@@ -12,7 +12,7 @@ pub mod lower;
 pub mod write;
 
 pub use diag::{Diagnostic, Report, Severity};
-pub use edit::{EditError, Editor};
+pub use edit::{EditError, Editor, Placement};
 pub use lower::{lower, raise};
 
 use rhizo_core::Document;
