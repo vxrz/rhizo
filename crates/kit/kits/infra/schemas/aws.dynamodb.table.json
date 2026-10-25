@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/aws.dynamodb.table.json",
+  "title": "DynamoDB table",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["hash-key"],
+  "properties": {
+    "hash-key": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$", "description": "Partition key attribute" },
+    "hash-key-type": { "enum": ["S", "N", "B"], "default": "S" },
+    "range-key": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$", "description": "Sort key attribute" },
+    "range-key-type": { "enum": ["S", "N", "B"], "default": "S" },
+    "ttl-attribute": { "type": "string", "description": "Attribute holding the expiry time (epoch seconds)" },
+    "point-in-time-recovery": { "type": "boolean", "default": true },
+    "deletion-protection": { "type": "boolean", "default": true },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Holds sensitive data: needs a customer-managed KMS key (a dependency edge to an aws.kms.key)"
+    }
+  }
+}

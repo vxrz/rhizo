@@ -1,0 +1,36 @@
+// Built in and always available (no `use` needed): nodes about the work
+// itself. Agents read them from the build brief (`rhizo brief`).
+kit rhizo version="0.1.0" {
+    description "Goals and decisions: what done looks like and what to build it with"
+    namespaces rhizo
+}
+
+type rhizo.goal {
+    label "Goal"
+    description "An end state the diagram aims for. The note says what done looks like; `accept` lines say how to tell. Link it to the parts that realize it."
+    schema "schemas/rhizo.goal.json"
+    shape pill
+    look {
+        badge goal tone=indigo
+        subtitle "due {due}"
+        state "{status}" proposed=draft dropped=void
+    }
+}
+
+type rhizo.flow frame=#true {
+    label "Flow"
+    description "A process or automation to build as one unit: a workflow, a pipeline, an integration. Its steps follow the edges; label the edges out of a decision with their conditions."
+    schema "schemas/rhizo.flow.json"
+}
+
+type rhizo.decision {
+    label "Decision"
+    description "An architecture or stack decision. Every task touching a linked node must follow it; unlinked decisions apply to everything."
+    schema "schemas/rhizo.decision.json"
+    shape rect
+    look {
+        badge "{status}" accepted=green proposed=amber rejected=red deprecated=grey superseded=grey
+        subtitle "{decision}"
+        state "{status}" proposed=draft rejected=void deprecated=void superseded=void
+    }
+}

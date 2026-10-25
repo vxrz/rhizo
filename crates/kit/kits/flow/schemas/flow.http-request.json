@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.http-request.json",
+  "title": "HTTP request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "enum": ["get", "post", "put", "patch", "delete"],
+      "default": "get",
+      "description": "Taken from the operation when the step has an edge to a data.operation"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://",
+      "description": "Required unless the step has an edge to a data.operation"
+    },
+    "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+    "body": {
+      "type": "object",
+      "description": "The request body; values may be templates. Without it, post, put and patch send the data."
+    },
+    "description": { "type": "string" }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/rhizo/0.1/rhizo.decision.json",
+  "title": "Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "enum": ["proposed", "accepted", "rejected", "deprecated", "superseded"],
+      "default": "proposed"
+    },
+    "decision": { "type": "string", "description": "What was decided, in one sentence" },
+    "drivers": { "type": "array", "items": { "type": "string" } },
+    "options": { "type": "array", "items": { "type": "string" } },
+    "date": { "type": "string", "format": "date" },
+    "description": { "type": "string" }
+  }
+}

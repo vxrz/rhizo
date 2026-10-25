@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.database.json",
+  "title": "Database",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "engine": {
+      "enum": [
+        "postgres"
+      ],
+      "default": "postgres",
+      "description": "Database engine"
+    },
+    "engine-version": {
+      "type": "string",
+      "pattern": "^[0-9]{2}(\\.[0-9]+)?$",
+      "default": "17",
+      "description": "PostgreSQL major version, or major.minor"
+    },
+    "storage-gb": {
+      "type": "integer",
+      "minimum": 20,
+      "maximum": 65536,
+      "default": 20
+    },
+    "high-availability": {
+      "type": "boolean",
+      "default": true
+    },
+    "backup-days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 35,
+      "default": 7
+    },
+    "deletion-protection": {
+      "type": "boolean",
+      "default": true
+    },
+    "database": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]{0,62}$",
+      "description": "Initial database name (default: the node id with underscores)"
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Holds sensitive data: needs a customer-managed key (a dependency edge to an infra.key)"
+    },
+    "aws": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instance-class": {
+          "type": "string",
+          "pattern": "^db\\.[a-z0-9]+\\.[a-z0-9]+$",
+          "default": "db.t4g.micro"
+        }
+      },
+      "description": "Settings only AWS has; used when the environment's cloud is aws"
+    },
+    "azure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sku-name": {
+          "type": "string",
+          "pattern": "^(B|GP|MO)_[A-Za-z0-9_]+$",
+          "default": "GP_Standard_D2ds_v5",
+          "description": "PostgreSQL Flexible Server SKU; burstable (B_) SKUs cannot be highly available"
+        }
+      },
+      "description": "Settings only Azure has; used when the environment's cloud is azure"
+    },
+    "gcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "type": "string",
+          "pattern": "^db-[A-Za-z0-9-]+$",
+          "default": "db-custom-1-3840",
+          "description": "Cloud SQL machine tier; db-perf-optimized-* tiers run on Enterprise Plus, every other tier on Enterprise"
+        }
+      },
+      "description": "Settings only Google Cloud has; used when the environment's cloud is gcp"
+    },
+    "tf-type": {
+      "$ref": "imported.json#/$defs/tf-type",
+      "readOnly": true
+    },
+    "mode": {
+      "$ref": "imported.json#/$defs/mode",
+      "readOnly": true
+    },
+    "name": {
+      "$ref": "imported.json#/$defs/name",
+      "readOnly": true
+    },
+    "source": {
+      "$ref": "imported.json#/$defs/source",
+      "readOnly": true
+    },
+    "version": {
+      "$ref": "imported.json#/$defs/version",
+      "readOnly": true
+    },
+    "body": {
+      "$ref": "imported.json#/$defs/body",
+      "readOnly": true
+    },
+    "origin": {
+      "$ref": "imported.json#/$defs/origin",
+      "readOnly": true
+    }
+  }
+}

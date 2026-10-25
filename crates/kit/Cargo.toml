@@ -1,0 +1,20 @@
+[package]
+name = "rhizo-kit"
+description = "Kits for rhizo: typed vocabularies with props schemas, ports and rules"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-lang.workspace = true
+indexmap.workspace = true
+serde_json.workspace = true
+kdl.workspace = true
+semver.workspace = true
+# Reads the HCL expressions of imported nodes (folding, infra/fold.rs).
+hcl-edit.workspace = true
+# No remote or file $refs: kit schemas are self-contained, and this keeps
+# reqwest/rustls out of the tree (and the crate WASM-friendly).
+jsonschema = { workspace = true }

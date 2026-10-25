@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/aws.vpc.json",
+  "title": "VPC",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cidr": {
+      "type": "string",
+      "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/(1[6-9]|20)$",
+      "default": "10.0.0.0/16",
+      "description": "IPv4 range, /16 to /20; subnets are carved from it"
+    },
+    "azs": { "type": "integer", "minimum": 2, "maximum": 3, "default": 2, "description": "Availability zones" },
+    "nat": {
+      "enum": ["none", "single", "per-az"],
+      "default": "single",
+      "description": "NAT gateways for outbound traffic from private subnets"
+    },
+    "flow-logs": { "type": "boolean", "default": true, "description": "VPC flow logs to CloudWatch" }
+  }
+}

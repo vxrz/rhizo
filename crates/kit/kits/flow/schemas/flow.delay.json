@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.delay.json",
+  "title": "Delay",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seconds"],
+  "properties": {
+    "seconds": { "type": "integer", "minimum": 1 },
+    "description": { "type": "string" }
+  }
+}

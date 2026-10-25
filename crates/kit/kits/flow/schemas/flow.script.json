@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.script.json",
+  "title": "Script",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "JavaScript function body: gets `data`, returns the new data. Without it the step is a task for an agent."
+    },
+    "description": { "type": "string" }
+  }
+}

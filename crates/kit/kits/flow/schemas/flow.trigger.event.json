@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.trigger.event.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event"],
+  "properties": {
+    "event": { "type": "string", "minLength": 1, "description": "The CloudEvent type, e.g. com.example.order.placed" },
+    "description": { "type": "string" }
+  }
+}

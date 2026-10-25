@@ -1,0 +1,131 @@
+// The flow kit: automations drawn as a trigger and steps joined by control
+// edges. Each flow.workflow frame compiles to a Serverless Workflow 1.0
+// definition and an importable Node-RED flow. The data passed from step to
+// step is one JSON value; expressions refer to it by path (`total`,
+// `customer.email`). Rules (Rust): one trigger per workflow, every step
+// reachable, no loops, a switch's edges labelled with their conditions.
+kit flow version="0.1.0" {
+    description "Automations: a trigger and steps that compile to Serverless Workflow and Node-RED"
+    namespaces flow
+    targets serverless-workflow node-red
+}
+
+type flow.workflow frame=#true {
+    label "Workflow"
+    description "One automation: exactly one trigger and the steps it leads to, joined by control edges. Compiles to flows/serverless-workflow/<id>.sw.yaml and flows/node-red/<id>.json."
+    schema "schemas/flow.workflow.json"
+}
+
+type flow.trigger.webhook {
+    label "Webhook"
+    description "Starts the workflow on an HTTP request; the request body is the data. Node-RED answers with the data at the end of the flow."
+    schema "schemas/flow.trigger.webhook.json"
+    shape pill
+    parents flow.workflow
+    port out "next" kind=control default=#true
+    look {
+        badge webhook tone=amber
+        subtitle "{path}"
+    }
+}
+
+type flow.trigger.schedule {
+    label "Schedule"
+    description "Starts the workflow on a cron schedule, with empty data."
+    schema "schemas/flow.trigger.schedule.json"
+    shape pill
+    parents flow.workflow
+    port out "next" kind=control default=#true
+    look {
+        badge schedule tone=amber
+        subtitle "{cron}"
+    }
+}
+
+type flow.trigger.event {
+    label "Event"
+    description "Starts the workflow when a CloudEvent of a given type arrives; its data is the data. Serverless Workflow only."
+    schema "schemas/flow.trigger.event.json"
+    shape pill
+    parents flow.workflow
+    port out "next" kind=control default=#true
+    look {
+        badge event tone=amber
+        subtitle "{event}"
+    }
+}
+
+type flow.http-request {
+    label "HTTP request"
+    description "Calls an HTTP endpoint; the response body becomes the data. An edge to a data.operation calls that operation (method, path and the API's first server)."
+    schema "schemas/flow.http-request.json"
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+    look {
+        badge http tone=blue
+        subtitle "{url}"
+    }
+}
+
+type flow.switch {
+    label "Switch"
+    description "Branches: each edge out is labelled with its condition (`total > 1000`) or `default`. The first edge whose condition holds is taken; with no default, the workflow ends."
+    schema "schemas/flow.switch.json"
+    shape diamond
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+}
+
+type flow.transform {
+    label "Transform"
+    description "Replaces the data with a new object. Values in `set` are literals or templates: \"{{ total }}\", \"Order {{ id }}\"."
+    schema "schemas/flow.transform.json"
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+    look {
+        badge transform tone=teal
+    }
+}
+
+type flow.delay {
+    label "Delay"
+    description "Waits, then passes the data on unchanged."
+    schema "schemas/flow.delay.json"
+    shape ellipse
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+    look {
+        badge delay tone=grey
+        subtitle "{seconds} s"
+    }
+}
+
+type flow.call {
+    label "Call workflow"
+    description "Runs another flow.workflow of this project. Serverless Workflow only."
+    schema "schemas/flow.call.json"
+    shape hexagon
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+    look {
+        badge call tone=indigo
+        subtitle "{workflow}"
+    }
+}
+
+type flow.script {
+    label "Script"
+    description "Custom code, the gap the compilers leave open: without `code` it compiles to a placeholder and becomes a task in the build brief. `code` is a JavaScript function body that gets `data` and returns the new data."
+    schema "schemas/flow.script.json"
+    parents flow.workflow
+    port in "in" kind=control default=#true
+    port out "next" kind=control default=#true
+    look {
+        badge script tone=violet
+    }
+}

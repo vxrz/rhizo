@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.bucket.json",
+  "title": "Bucket",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "versioning": {
+      "type": "boolean",
+      "default": true
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expire-after-days"
+        ],
+        "properties": {
+          "prefix": {
+            "type": "string",
+            "default": ""
+          },
+          "expire-after-days": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Holds sensitive data: needs a customer-managed key (a dependency edge to an infra.key)"
+    },
+    "azure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access-tier": {
+          "enum": [
+            "Hot",
+            "Cool",
+            "Cold"
+          ],
+          "default": "Hot",
+          "description": "Default access tier of the storage account's blobs"
+        }
+      },
+      "description": "Settings only Azure has; used when the environment's cloud is azure"
+    },
+    "gcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "storage-class": {
+          "enum": [
+            "STANDARD",
+            "NEARLINE",
+            "COLDLINE",
+            "ARCHIVE"
+          ],
+          "default": "STANDARD",
+          "description": "Default storage class of the bucket's objects"
+        }
+      },
+      "description": "Settings only Google Cloud has; used when the environment's cloud is gcp"
+    },
+    "tf-type": {
+      "$ref": "imported.json#/$defs/tf-type",
+      "readOnly": true
+    },
+    "mode": {
+      "$ref": "imported.json#/$defs/mode",
+      "readOnly": true
+    },
+    "name": {
+      "$ref": "imported.json#/$defs/name",
+      "readOnly": true
+    },
+    "source": {
+      "$ref": "imported.json#/$defs/source",
+      "readOnly": true
+    },
+    "version": {
+      "$ref": "imported.json#/$defs/version",
+      "readOnly": true
+    },
+    "body": {
+      "$ref": "imported.json#/$defs/body",
+      "readOnly": true
+    },
+    "origin": {
+      "$ref": "imported.json#/$defs/origin",
+      "readOnly": true
+    }
+  }
+}

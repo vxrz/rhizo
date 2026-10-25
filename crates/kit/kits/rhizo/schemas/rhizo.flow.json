@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/rhizo/0.1/rhizo.flow.json",
+  "title": "Flow",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "trigger": { "type": "string", "description": "What starts the flow: an event, a schedule, a request" },
+    "description": { "type": "string" }
+  }
+}

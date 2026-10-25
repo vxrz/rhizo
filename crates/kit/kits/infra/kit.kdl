@@ -1,0 +1,312 @@
+// The infra kit: cloud infrastructure that compiles to OpenTofu, as
+// cloud-neutral types (infra.*, for aws, azure and gcp) and AWS types (aws.*).
+// One infra.environment frame is one OpenTofu root module (infra/<env>/).
+// Edges carry meaning by the types they join (see the rules in src/infra.rs):
+// API → function is a route, function → store an IAM grant, function or
+// database → VPC/subnet a placement, store → KMS key its encryption key.
+kit infra version="0.1.0" {
+    description "Cloud infrastructure, compiled to OpenTofu (cloud-neutral types compile for aws, azure and gcp)"
+    namespaces infra aws
+    targets opentofu
+}
+
+type infra.environment frame=#true {
+    label "Environment"
+    description "One deployable environment (one OpenTofu root module): provider, region, remote state and budget."
+    schema "schemas/infra.environment.json"
+}
+
+type aws.vpc {
+    label "VPC"
+    description "A VPC with public and private subnets across availability zones, NAT and flow logs."
+    schema "schemas/aws.vpc.json"
+    shape rect
+    parents infra.environment
+    port in "attach" kind=dependency default=#true
+    look {
+        tone violet
+        badge VPC tone=violet
+        subtitle "{cidr}"
+        container
+    }
+}
+
+type aws.subnet {
+    label "Subnet tier"
+    description "One tier of the VPC's subnets (one per availability zone). Functions and databases placed inside run there."
+    schema "schemas/aws.subnet.json"
+    shape rect
+    parents aws.vpc
+    port in "attach" kind=dependency default=#true
+    look {
+        tone violet
+        badge subnet tone=violet
+        subtitle "{tier}"
+        container
+    }
+}
+
+type aws.s3.bucket {
+    label "S3 bucket"
+    description "An S3 bucket: public access blocked, TLS only, encrypted, versioned."
+    schema "schemas/aws.s3.bucket.json"
+    shape rounded
+    parents infra.environment
+    port in "access" kind=data default=#true
+    look {
+        badge S3 tone=green
+    }
+}
+
+type aws.dynamodb.table {
+    label "DynamoDB table"
+    description "An on-demand DynamoDB table with encryption, point-in-time recovery and deletion protection."
+    schema "schemas/aws.dynamodb.table.json"
+    shape rounded
+    parents infra.environment
+    port in "access" kind=data default=#true
+    look {
+        badge DynamoDB tone=blue
+        subtitle "key {hash-key}"
+    }
+}
+
+type aws.rds.postgres {
+    label "RDS Postgres"
+    description "A private, encrypted, deletion-protected PostgreSQL instance. Place it in a VPC or a private/database subnet."
+    schema "schemas/aws.rds.postgres.json"
+    shape rounded
+    parents infra.environment aws.vpc aws.subnet
+    port in "connect" kind=data default=#true
+    look {
+        badge RDS tone=blue
+        subtitle "{instance-class}"
+    }
+}
+
+type aws.sqs.queue {
+    label "SQS queue"
+    description "An encrypted SQS queue with a dead-letter queue. A control edge to a function triggers it."
+    schema "schemas/aws.sqs.queue.json"
+    shape rect
+    parents infra.environment
+    port in "send" kind=data default=#true
+    port out "trigger" kind=control default=#true
+    look {
+        badge SQS tone=pink
+    }
+}
+
+type aws.sns.topic {
+    label "SNS topic"
+    description "An encrypted SNS topic. Edges to queues (data) and functions (control) subscribe them."
+    schema "schemas/aws.sns.topic.json"
+    shape rect
+    parents infra.environment
+    port in "publish" kind=data default=#true
+    port out "deliver" default=#true
+    look {
+        badge SNS tone=pink
+    }
+}
+
+type aws.kms.key {
+    label "KMS key"
+    description "A customer-managed KMS key with rotation. A dependency edge from a store to it encrypts the store with it."
+    schema "schemas/aws.kms.key.json"
+    shape hexagon
+    parents infra.environment
+    port in "encrypts" kind=dependency default=#true
+    look {
+        badge KMS tone=red
+    }
+}
+
+type aws.lambda.function {
+    label "Lambda function"
+    description "A Lambda function. Its code is built separately and passed in as a zip; data edges grant it least-privilege access."
+    schema "schemas/aws.lambda.function.json"
+    shape rect
+    parents infra.environment aws.vpc aws.subnet
+    port in "invoke" kind=control default=#true
+    port out "access" kind=data default=#true
+    look {
+        badge Lambda tone=orange
+        subtitle "{runtime}"
+    }
+}
+
+type aws.apigateway.http {
+    label "HTTP API"
+    description "An API Gateway HTTP API with access logs. Control edges to functions are routes (edge prop `route`, or the operations the function implements)."
+    schema "schemas/aws.apigateway.http.json"
+    shape rect
+    parents infra.environment
+    port out "routes" kind=control default=#true
+    look {
+        badge "API Gateway" tone=violet
+    }
+}
+
+// Cloud-neutral types (docs/design/infra-cloud-neutral.md): the environment's
+// `cloud` picks what they compile to. They compile exactly like their aws.*
+// counterparts on aws; settings only one cloud has go in a block named after
+// it (`props { aws instance-class="db.t4g.small" }`).
+type infra.network {
+    label "Network"
+    description "A private network with public and private subnet tiers across zones, NAT and flow logs (a VPC on aws)."
+    schema "schemas/infra.network.json"
+    shape rect
+    parents infra.environment
+    port in "attach" kind=dependency default=#true
+    look {
+        tone violet
+        badge Network tone=violet
+        subtitle "{cidr}"
+        container
+    }
+}
+
+type infra.subnet {
+    label "Subnet tier"
+    description "One tier of the network's subnets (one per zone). Functions and databases placed inside run there."
+    schema "schemas/infra.subnet.json"
+    shape rect
+    parents infra.network aws.vpc
+    port in "attach" kind=dependency default=#true
+    look {
+        tone violet
+        badge subnet tone=violet
+        subtitle "{tier}"
+        container
+    }
+}
+
+type infra.bucket {
+    label "Bucket"
+    description "Object storage: public access blocked, TLS only, encrypted, versioned (S3 on aws)."
+    schema "schemas/infra.bucket.json"
+    shape rounded
+    parents infra.environment
+    port in "access" kind=data default=#true
+    look {
+        badge Bucket tone=green
+    }
+}
+
+type infra.table {
+    label "Table"
+    description "A serverless key-value table with encryption, point-in-time recovery and deletion protection (DynamoDB on aws)."
+    schema "schemas/infra.table.json"
+    shape rounded
+    parents infra.environment
+    port in "access" kind=data default=#true
+    look {
+        badge Table tone=blue
+        subtitle "key {partition-key}"
+    }
+}
+
+type infra.database {
+    label "Database"
+    description "A private, encrypted, deletion-protected PostgreSQL database (RDS on aws). Place it in a network or a private/database subnet tier."
+    schema "schemas/infra.database.json"
+    shape rounded
+    parents infra.environment infra.network infra.subnet aws.vpc aws.subnet
+    port in "connect" kind=data default=#true
+    look {
+        badge Postgres tone=blue
+        subtitle "{engine-version}"
+    }
+}
+
+type infra.queue {
+    label "Queue"
+    description "An encrypted message queue with a dead-letter queue (SQS on aws). A control edge to a function triggers it."
+    schema "schemas/infra.queue.json"
+    shape rect
+    parents infra.environment
+    port in "send" kind=data default=#true
+    port out "trigger" kind=control default=#true
+    look {
+        badge Queue tone=pink
+    }
+}
+
+type infra.topic {
+    label "Topic"
+    description "An encrypted publish/subscribe topic (SNS on aws). Edges to queues (data) and functions (control) subscribe them."
+    schema "schemas/infra.topic.json"
+    shape rect
+    parents infra.environment
+    port in "publish" kind=data default=#true
+    port out "deliver" default=#true
+    look {
+        badge Topic tone=pink
+    }
+}
+
+type infra.key {
+    label "Key"
+    description "A customer-managed encryption key with rotation (KMS on aws). A dependency edge from a store to it encrypts the store with it."
+    schema "schemas/infra.key.json"
+    shape hexagon
+    parents infra.environment
+    port in "encrypts" kind=dependency default=#true
+    look {
+        badge Key tone=red
+    }
+}
+
+type infra.function {
+    label "Function"
+    description "A serverless function (Lambda on aws). Its code is built separately and passed in as a package; data edges grant it least-privilege access."
+    schema "schemas/infra.function.json"
+    shape rect
+    parents infra.environment infra.network infra.subnet aws.vpc aws.subnet
+    port in "invoke" kind=control default=#true
+    port out "access" kind=data default=#true
+    look {
+        badge Function tone=orange
+        subtitle "{runtime}"
+    }
+}
+
+type infra.api {
+    label "HTTP API"
+    description "A managed HTTP API with access logs (API Gateway on aws). Control edges to functions are routes (edge prop `route`, or the operations the function implements)."
+    schema "schemas/infra.api.json"
+    shape rect
+    parents infra.environment
+    port out "routes" kind=control default=#true
+    look {
+        badge API tone=violet
+    }
+}
+
+// Generic types: any OpenTofu block, carried verbatim. `rhizo import tofu`
+// writes them; in `body`, every string is an HCL expression as written and
+// every array a list of nested blocks (see docs/design/iac-import.md).
+type infra.resource {
+    label "Resource"
+    description "Any OpenTofu resource or data source, carried verbatim: `body` holds its arguments as HCL expressions and its nested blocks."
+    schema "schemas/infra.resource.json"
+    shape rect
+    parents infra.environment
+    look {
+        badge "{tf-type}"
+        subtitle "{mode}"
+    }
+}
+
+type infra.module {
+    label "Module call"
+    description "Any OpenTofu module call, carried verbatim: `source`, `version`, and its arguments as HCL expressions in `body`."
+    schema "schemas/infra.module.json"
+    shape rect
+    parents infra.environment
+    look {
+        badge module tone=violet
+        subtitle "{source}"
+    }
+}

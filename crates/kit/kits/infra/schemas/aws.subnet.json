@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/aws.subnet.json",
+  "title": "Subnet tier",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tier"],
+  "properties": {
+    "tier": {
+      "enum": ["public", "private", "database"],
+      "description": "public: routed to the internet; private: outbound through NAT; database: no internet route"
+    }
+  }
+}

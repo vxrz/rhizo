@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/data/0.1/data.event.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "content-type": { "type": "string", "default": "application/json" },
+    "description": { "type": "string" }
+  }
+}

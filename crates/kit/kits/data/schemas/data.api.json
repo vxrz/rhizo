@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/data/0.1/data.api.json",
+  "title": "API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "default": "0.1.0" },
+    "servers": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" }
+    },
+    "auth": { "enum": ["oauth2", "api-key", "none"], "default": "none" },
+    "api-version": {
+      "enum": ["3.1", "3.2"],
+      "default": "3.1",
+      "description": "OpenAPI version to emit"
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier, e.g. Apache-2.0"
+    },
+    "errors": {
+      "enum": ["problem-details", "none"],
+      "default": "problem-details",
+      "description": "problem-details: every operation gets a 4XX application/problem+json response (RFC 9457) unless the diagram models one"
+    },
+    "description": { "type": "string" }
+  }
+}

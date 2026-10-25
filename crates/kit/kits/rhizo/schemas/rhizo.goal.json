@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/rhizo/0.1/rhizo.goal.json",
+  "title": "Goal",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": { "enum": ["proposed", "active", "done", "dropped"], "default": "active" },
+    "owner": { "type": "string" },
+    "due": { "type": "string", "format": "date" },
+    "description": { "type": "string" }
+  }
+}

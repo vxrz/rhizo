@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.table.json",
+  "title": "Table",
+  "type": "object",
+  "additionalProperties": false,
+  "if": {
+    "not": {
+      "required": [
+        "origin"
+      ]
+    }
+  },
+  "then": {
+    "required": [
+      "partition-key"
+    ]
+  },
+  "properties": {
+    "partition-key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "description": "Partition key attribute"
+    },
+    "partition-key-type": {
+      "enum": [
+        "S",
+        "N",
+        "B"
+      ],
+      "default": "S"
+    },
+    "sort-key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "description": "Sort key attribute"
+    },
+    "sort-key-type": {
+      "enum": [
+        "S",
+        "N",
+        "B"
+      ],
+      "default": "S"
+    },
+    "ttl-attribute": {
+      "type": "string",
+      "description": "Attribute holding the expiry time (epoch seconds)"
+    },
+    "point-in-time-recovery": {
+      "type": "boolean",
+      "default": true
+    },
+    "deletion-protection": {
+      "type": "boolean",
+      "default": true
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Holds sensitive data: needs a customer-managed key (a dependency edge to an infra.key)"
+    },
+    "tf-type": {
+      "$ref": "imported.json#/$defs/tf-type",
+      "readOnly": true
+    },
+    "mode": {
+      "$ref": "imported.json#/$defs/mode",
+      "readOnly": true
+    },
+    "name": {
+      "$ref": "imported.json#/$defs/name",
+      "readOnly": true
+    },
+    "source": {
+      "$ref": "imported.json#/$defs/source",
+      "readOnly": true
+    },
+    "version": {
+      "$ref": "imported.json#/$defs/version",
+      "readOnly": true
+    },
+    "body": {
+      "$ref": "imported.json#/$defs/body",
+      "readOnly": true
+    },
+    "origin": {
+      "$ref": "imported.json#/$defs/origin",
+      "readOnly": true
+    }
+  }
+}

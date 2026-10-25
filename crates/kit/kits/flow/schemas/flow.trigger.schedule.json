@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.trigger.schedule.json",
+  "title": "Schedule",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cron"],
+  "properties": {
+    "cron": {
+      "type": "string",
+      "pattern": "^[0-9*/,-]+( [0-9A-Za-z*/,-]+){4}$",
+      "description": "Five-field cron: minute hour day-of-month month day-of-week, e.g. 0 7 * * 1-5"
+    },
+    "description": { "type": "string" }
+  }
+}

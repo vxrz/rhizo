@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/aws.s3.bucket.json",
+  "title": "S3 bucket",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "versioning": { "type": "boolean", "default": true },
+    "lifecycle": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expire-after-days"],
+        "properties": {
+          "prefix": { "type": "string", "default": "" },
+          "expire-after-days": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Holds sensitive data: needs a customer-managed KMS key (a dependency edge to an aws.kms.key)"
+    }
+  }
+}

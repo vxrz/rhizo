@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.switch.json",
+  "title": "Switch",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "description": { "type": "string" }
+  }
+}

@@ -1,0 +1,96 @@
+// The data kit: entities and their fields, APIs, operations and events.
+// Its compilers (later) emit JSON Schema 2020-12, OpenAPI 3.1 and AsyncAPI 3.
+// Each type's props are checked against schemas/<type>.json.
+kit data version="0.1.0" {
+    description "Data models and APIs: entities, fields, operations, events"
+    namespaces data
+    targets json-schema openapi asyncapi
+}
+
+type data.entity {
+    label "Entity"
+    description "A record type. Its data.field children are its properties; data edges to other entities are relations."
+    schema "schemas/data.entity.json"
+    shape rect
+    port in "ref" kind=data default=#true
+    port out "schema" kind=data default=#true
+    look {
+        tone blue
+        rows data.field {
+            detail "{format|type}"
+            strong "{required}"
+            marker "{pii}" personal=amber sensitive=red text=PII
+        }
+    }
+}
+
+type data.field {
+    label "Field"
+    description "One property of an entity or an event payload."
+    schema "schemas/data.field.json"
+    parents data.entity data.event
+}
+
+type data.enum {
+    label "Enum"
+    description "A closed set of values: one child node per value."
+    schema "schemas/data.enum.json"
+    shape hexagon
+    port out "schema" kind=data default=#true
+    look {
+        tone violet
+        badge enum tone=violet
+        rows "*"
+    }
+}
+
+type data.api frame=#true {
+    label "API"
+    description "One OpenAPI document. The frame label is its title."
+    schema "schemas/data.api.json"
+}
+
+type data.operation {
+    label "Operation"
+    description "An HTTP operation. A data edge from an entity is the request body, one to an entity the response."
+    schema "schemas/data.operation.json"
+    shape pill
+    parents data.api
+    port in "request" kind=data default=#true
+    port out "response" kind=data default=#true
+    look {
+        badge "{method}" get=green post=blue put=amber patch=violet delete=red tone=grey
+        subtitle "{path}"
+    }
+}
+
+type data.event {
+    label "Event"
+    description "An AsyncAPI message. A data edge from an entity, or data.field children, give its payload."
+    schema "schemas/data.event.json"
+    shape ellipse
+    port in "payload" kind=data default=#true
+    port out "published" kind=data default=#true
+    look {
+        tone pink
+        badge event tone=pink
+        card
+        rows data.field {
+            detail "{format|type}"
+            strong "{required}"
+            marker "{pii}" personal=amber sensitive=red text=PII
+        }
+    }
+}
+
+type data.channel {
+    label "Channel"
+    description "An AsyncAPI channel that events are published to."
+    schema "schemas/data.channel.json"
+    port in "publish" kind=data default=#true
+    port out "subscribe" kind=data default=#true
+    look {
+        badge channel tone=teal
+        subtitle "{address}"
+    }
+}

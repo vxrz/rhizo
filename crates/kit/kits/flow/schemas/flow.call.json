@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.call.json",
+  "title": "Call workflow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workflow"],
+  "properties": {
+    "workflow": { "type": "string", "description": "Frame id of the flow.workflow to run" },
+    "description": { "type": "string" }
+  }
+}

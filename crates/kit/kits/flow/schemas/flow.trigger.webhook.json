@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.trigger.webhook.json",
+  "title": "Webhook",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path"],
+  "properties": {
+    "method": { "enum": ["get", "post", "put", "patch", "delete"], "default": "post" },
+    "path": { "type": "string", "pattern": "^/[A-Za-z0-9/_.-]*$" },
+    "description": { "type": "string" }
+  }
+}

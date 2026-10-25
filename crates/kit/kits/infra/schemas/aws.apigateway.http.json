@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/aws.apigateway.http.json",
+  "title": "HTTP API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cors-origins": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(https?://[^/]+|\\*)$" },
+      "description": "Origins allowed to call the API from a browser"
+    }
+  }
+}

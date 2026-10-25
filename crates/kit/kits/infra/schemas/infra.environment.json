@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.environment.json",
+  "title": "Environment",
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "origin"
+        ]
+      },
+      "else": {
+        "required": [
+          "region"
+        ]
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "required": [
+            "cloud"
+          ],
+          "properties": {
+            "cloud": {
+              "enum": [
+                "azure",
+                "gcp"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "region": {
+            "pattern": "^[a-z]{2}(-gov)?-[a-z]+-[0-9]$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "cloud"
+        ],
+        "properties": {
+          "cloud": {
+            "const": "azure"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "region": {
+            "pattern": "^[a-z][a-z0-9]+$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "cloud"
+        ],
+        "properties": {
+          "cloud": {
+            "const": "gcp"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "region": {
+            "pattern": "^[a-z]+-[a-z]+[0-9]+$"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "cloud": {
+      "enum": [
+        "aws",
+        "azure",
+        "gcp"
+      ],
+      "default": "aws",
+      "description": "The cloud the environment's cloud-neutral types (infra.bucket, infra.function, …) compile for."
+    },
+    "region": {
+      "type": "string",
+      "description": "The cloud's region, e.g. eu-central-1 on aws, westeurope on azure or europe-west3 on gcp"
+    },
+    "state-bucket": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+      "description": "Existing S3 bucket for remote state on aws (S3-native locking, encrypted state). Without it, state stays local."
+    },
+    "azure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource-group": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_().-]{0,89}[A-Za-z0-9_()-]$",
+          "description": "Name of the resource group the environment creates (default: rg-<source>-<environment>)"
+        },
+        "state-storage-account": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{3,24}$",
+          "description": "Existing storage account for remote state (azurerm backend, Entra ID auth, blob lease locking). Without it, state stays local."
+        },
+        "state-container": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+          "default": "tfstate",
+          "description": "Blob container for the state"
+        },
+        "state-resource-group": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_().-]{0,89}[A-Za-z0-9_()-]$",
+          "description": "Resource group of the state storage account"
+        }
+      },
+      "description": "Settings only Azure has; used when the environment's cloud is azure"
+    },
+    "gcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state-bucket": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$",
+          "description": "Existing Cloud Storage bucket for remote state (gcs backend with native locking; state and plans encrypted with the state_kms_key variable's key). Without it, state stays local."
+        },
+        "state-prefix": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$",
+          "description": "Folder of the state in the bucket (default: <source>/<environment>)"
+        }
+      },
+      "description": "Settings only Google Cloud has; used when the environment's cloud is gcp. The project is the project_id variable, so one diagram deploys to any project."
+    },
+    "budget-monthly": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Monthly cost budget in USD; alerts go to the budget_alert_emails variable"
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dir"
+      ],
+      "properties": {
+        "dir": {
+          "type": "string",
+          "description": "Name of the folder it was imported from"
+        }
+      },
+      "description": "Imported from OpenTofu code: the environment compiles back as that root module (preserve mode), from `blocks` and its nodes, not from region, state-bucket and budget-monthly."
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Imported blocks that are not nodes (terraform, provider, variable, output, locals, moved, import, check, …), verbatim and in source order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]*\\.(tf|tofu)$"
+          },
+          "body": {
+            "$ref": "#/$defs/body"
+          }
+        }
+      }
+    },
+    "lock-file": {
+      "type": "string",
+      "description": "The imported .terraform.lock.hcl, verbatim: the provider versions and checksums the code was planned with."
+    }
+  },
+  "$defs": {
+    "body": {
+      "type": "object",
+      "description": "Arguments and nested blocks in source order. A string is an HCL expression exactly as written (a string literal keeps its quotes); an array holds the bodies of the nested blocks named by its key (`ingress`, `dynamic \"ingress\"`).",
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_-]*( \"([^\"\\\\]|\\\\.)*\")*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/body"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

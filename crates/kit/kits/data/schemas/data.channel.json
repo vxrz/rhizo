@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/data/0.1/data.channel.json",
+  "title": "Channel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["address"],
+  "properties": {
+    "address": { "type": "string" },
+    "description": { "type": "string" }
+  }
+}

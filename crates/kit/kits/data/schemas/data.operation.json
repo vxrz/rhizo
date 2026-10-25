@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/data/0.1/data.operation.json",
+  "title": "Operation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["method", "path"],
+  "properties": {
+    "method": { "enum": ["get", "put", "post", "delete", "options", "head", "patch", "trace"] },
+    "path": { "type": "string", "pattern": "^/" },
+    "summary": { "type": "string" },
+    "description": { "type": "string" },
+    "deprecated": { "type": "boolean", "default": false }
+  }
+}

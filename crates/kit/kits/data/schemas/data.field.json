@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/data/0.1/data.field.json",
+  "title": "Field",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "enum": ["string", "integer", "number", "boolean", "array", "object"],
+      "default": "string"
+    },
+    "format": {
+      "type": "string",
+      "description": "A JSON Schema format such as date-time, email, uuid or uri"
+    },
+    "required": { "type": "boolean", "default": false },
+    "pii": {
+      "enum": ["none", "personal", "sensitive"],
+      "default": "none",
+      "description": "Drives log redaction, encryption and authentication requirements in other kits"
+    },
+    "enum": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": ["string", "number"] }
+    },
+    "min": { "type": "number" },
+    "max": { "type": "number" },
+    "description": { "type": "string" }
+  }
+}

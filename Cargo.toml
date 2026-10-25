@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.95"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
@@ -14,6 +14,11 @@ rhizo-lang = { path = "crates/lang" }
 rhizo-layout = { path = "crates/layout" }
 rhizo-render = { path = "crates/render" }
 rhizo-interop = { path = "crates/interop" }
+rhizo-kit = { path = "crates/kit" }
+rhizo-compile = { path = "crates/compile" }
+rhizo-mcp = { path = "crates/mcp" }
+rhizo-project = { path = "crates/project" }
+rhizo-iac = { path = "crates/iac" }
 
 indexmap = { version = "2.14", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -23,6 +28,12 @@ schemars = { version = "1.2", features = ["indexmap2"] }
 thiserror = "2.0"
 miette = "7.6"
 kdl = "6.7"
+jsonschema = { version = "0.59", default-features = false }
+semver = "1.0"
+sha2 = "0.11"
+rmcp = { version = "3.6", default-features = false, features = ["server", "macros", "transport-io"] }
+tokio = { version = "1", features = ["rt"] }
+base64 = "0.22"
 roxmltree = "0.20"
 clap = { version = "4.6", features = ["derive"] }
 # usvg/resvg are pinned to the version krilla-svg is built against so only one
@@ -33,6 +44,7 @@ krilla = "0.8"
 krilla-svg = "0.8"
 ttf-parser = "0.25"
 pretty_assertions = "1.4"
+hcl-edit = "0.9.8"
 
 [profile.release]
 lto = "thin"

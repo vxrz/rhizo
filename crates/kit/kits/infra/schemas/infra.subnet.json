@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.subnet.json",
+  "title": "Subnet tier",
+  "type": "object",
+  "additionalProperties": false,
+  "if": {
+    "not": {
+      "required": [
+        "origin"
+      ]
+    }
+  },
+  "then": {
+    "required": [
+      "tier"
+    ]
+  },
+  "properties": {
+    "tier": {
+      "enum": [
+        "public",
+        "private",
+        "database"
+      ],
+      "description": "public: routed to the internet; private: outbound through NAT; database: no internet route"
+    },
+    "tf-type": {
+      "$ref": "imported.json#/$defs/tf-type",
+      "readOnly": true
+    },
+    "mode": {
+      "$ref": "imported.json#/$defs/mode",
+      "readOnly": true
+    },
+    "name": {
+      "$ref": "imported.json#/$defs/name",
+      "readOnly": true
+    },
+    "source": {
+      "$ref": "imported.json#/$defs/source",
+      "readOnly": true
+    },
+    "version": {
+      "$ref": "imported.json#/$defs/version",
+      "readOnly": true
+    },
+    "body": {
+      "$ref": "imported.json#/$defs/body",
+      "readOnly": true
+    },
+    "origin": {
+      "$ref": "imported.json#/$defs/origin",
+      "readOnly": true
+    }
+  }
+}

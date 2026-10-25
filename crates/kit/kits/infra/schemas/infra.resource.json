@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/infra/0.1/infra.resource.json",
+  "title": "Resource",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tf-type"
+  ],
+  "properties": {
+    "tf-type": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$",
+      "description": "The resource type, e.g. aws_s3_bucket"
+    },
+    "mode": {
+      "enum": [
+        "managed",
+        "data",
+        "ephemeral"
+      ],
+      "description": "managed (a resource block, the default), data (a data source) or ephemeral"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$",
+      "description": "The block's name; defaults to the node id as an identifier"
+    },
+    "body": {
+      "$ref": "#/$defs/body"
+    },
+    "origin": {
+      "$ref": "#/$defs/origin"
+    }
+  },
+  "$defs": {
+    "body": {
+      "type": "object",
+      "description": "Arguments and nested blocks in source order. A string is an HCL expression exactly as written (a string literal keeps its quotes); an array holds the bodies of the nested blocks named by its key (`ingress`, `dynamic \"ingress\"`).",
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_-]*( \"([^\"\\\\]|\\\\.)*\")*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/body"
+            }
+          }
+        ]
+      }
+    },
+    "origin": {
+      "type": "object",
+      "description": "Where an imported node came from. With it the node compiles back in its original shape at its original address.",
+      "additionalProperties": false,
+      "required": [
+        "address",
+        "shape"
+      ],
+      "properties": {
+        "address": {
+          "type": "string",
+          "description": "Its address in the original code, e.g. aws_s3_bucket.receipts or module.vpc",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "shape": {
+          "type": "string",
+          "description": "resource, data, ephemeral or module"
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]*\\.(tf|tofu)$",
+          "description": "The file it was written in"
+        }
+      }
+    }
+  }
+}

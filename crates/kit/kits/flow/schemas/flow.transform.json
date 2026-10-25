@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhizo.dev/kits/flow/0.1/flow.transform.json",
+  "title": "Transform",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["set"],
+  "properties": {
+    "set": { "type": "object", "minProperties": 1, "description": "The new data: keys to literals or templates" },
+    "description": { "type": "string" }
+  }
+}
