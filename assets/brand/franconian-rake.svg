@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 22 26" width="22" height="26" role="img" aria-label="Franconian rake">
+  <title>Franconian rake (Fränkischer Rechen): per fess dancetty of three points, gules and argent</title>
+  <defs>
+    <clipPath id="shield">
+      <path d="M0 0 H20 V13 C20 19 15 22.4 10 24 C5 22.4 0 19 0 13 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#shield)">
+    <rect x="0" y="0" width="20" height="24" fill="#e30613"/>
+    <path d="M0 13 L3.333 4 L6.667 13 L10 4 L13.333 13 L16.667 4 L20 13 V24 H0 Z" fill="#ffffff"/>
+  </g>
+  <path d="M0 0 H20 V13 C20 19 15 22.4 10 24 C5 22.4 0 19 0 13 Z" fill="none" stroke="#71717a" stroke-width="0.9" stroke-linejoin="round"/>
+</svg>

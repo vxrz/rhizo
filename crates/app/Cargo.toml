@@ -15,7 +15,24 @@ rhizo-core.workspace = true
 rhizo-lang.workspace = true
 rhizo-layout.workspace = true
 rhizo-render.workspace = true
+rhizo-interop.workspace = true
+rhizo-kit.workspace = true
+rhizo-project.workspace = true
+rhizo-iac.workspace = true
+rhizo-compile.workspace = true
+serde_json.workspace = true
+rfd = "0.17"
+# The text pane's copy and paste.
+arboard = { version = "3.7", default-features = false }
 vello = "0.11"
 winit = "0.30.13"
 pollster = "1.0"
 miette = { workspace = true, features = ["fancy"] }
+
+# The native menu bar. macOS only: elsewhere the ⌘K palette and the keys are the menu.
+# 0.19 was picked while the workspace targeted Rust 1.85; 0.20+ (needs 1.90) is possible now.
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = { version = "0.19", default-features = false }
+
+[dev-dependencies]
+png = "0.18"

@@ -6,9 +6,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use rhizo_core::{Color, LineStyle, Shape};
-use rhizo_layout::{Diagram, EdgeBox, FrameBox, LabelBox, NodeBox, Path as LPath, Seg};
+use rhizo_layout::{Diagram, EdgeBox, FrameBox, Ink, LabelBox, NodeBox, Path as LPath, Seg};
 use rhizo_render::Fonts;
-use vello::kurbo::{Affine, BezPath, Cap, Ellipse, Join, Point, Rect, RoundedRect, Shape as _, Stroke};
+use vello::kurbo::{
+    Affine, BezPath, Cap, Ellipse, Join, Line, Point, Rect, RoundedRect, RoundedRectRadii, Shape as _, Stroke,
+};
 use vello::peniko::{Blob, Fill, FontData};
 use vello::{Glyph, Scene};
 
@@ -19,7 +21,7 @@ use crate::peniko_color;
 pub struct FontCache(HashMap<usize, FontData>);
 
 impl FontCache {
-    fn get(&mut self, data: &Arc<Vec<u8>>, index: u32) -> FontData {
+    pub(crate) fn get(&mut self, data: &Arc<Vec<u8>>, index: u32) -> FontData {
         self.0
             .entry(Arc::as_ptr(data) as usize)
             .or_insert_with(|| FontData::new(Blob::new(data.clone() as Arc<dyn AsRef<[u8]> + Send + Sync>), index))
@@ -44,6 +46,11 @@ pub fn scene(d: &Diagram, fonts: &Fonts, cache: &mut FontCache) -> Scene {
     s
 }
 
+/// One edge (path, arrowheads, label), for overlays that restyle it.
+pub fn edge(s: &mut Scene, fonts: &Fonts, cache: &mut FontCache, transform: Affine, e: &EdgeBox) {
+    Cx { s, base: transform, fonts, cache }.edge(e);
+}
+
 /// One line of text for overlays (labels being edited, the palette).
 /// Returns the drawn width.
 #[allow(clippy::too_many_arguments)]
@@ -60,7 +67,7 @@ pub fn text(
     color: Color,
 ) -> f32 {
     let mut cx = Cx { s, base: transform, fonts, cache };
-    cx.text_line(text, x, baseline, size, weight, color, false)
+    cx.text_line(text, x, baseline, size, weight, color, 0.0)
 }
 
 struct Cx<'a> {
@@ -78,7 +85,7 @@ fn pt(p: rhizo_core::Point) -> Point {
     Point::new(p.x as f64, p.y as f64)
 }
 
-fn bez(p: &LPath) -> BezPath {
+pub fn bez(p: &LPath) -> BezPath {
     let mut b = BezPath::new();
     b.move_to(pt(p.start));
     for seg in &p.segs {
@@ -116,7 +123,7 @@ impl Cx<'_> {
         self.stroke(&r, f.stroke, &Stroke::new(1.0));
         if let Some(label) = &f.label {
             let baseline = f.rect.y + 16.0 + f.label_size * 0.8;
-            self.text_line(label, f.rect.x + 20.0, baseline, f.label_size, 600, f.label_color, false);
+            self.text_line(label, f.rect.x + 20.0, baseline, f.label_size, 600, f.label_color, 0.0);
         }
     }
 
@@ -150,7 +157,8 @@ impl Cx<'_> {
     fn label(&mut self, l: &LabelBox) {
         let r = RoundedRect::from_rect(rect(&l.rect()), 4.0);
         let mut bg = l.background;
-        bg.a = (0.92 * 255.0) as u8;
+        // 92% like the SVG writer, of whatever alpha a fade left it.
+        bg.a = (bg.a as f32 * 0.92) as u8;
         self.fill(&r, bg);
         self.text_block(&l.lines, l.center.x, l.center.y, l.font_size, 400, l.line_height, l.color);
     }
@@ -187,8 +195,34 @@ impl Cx<'_> {
                 self.stroke(&p, n.stroke, &st);
             }
         }
-        let c = n.rect.center();
-        self.text_block(&n.lines, c.x, c.y, n.font_size, n.font_weight, n.line_height, n.text);
+        if n.ink().is_empty() {
+            let c = n.rect.center();
+            self.text_block(&n.lines, c.x, c.y, n.font_size, n.font_weight, n.line_height, n.text);
+        }
+        for i in n.ink() {
+            self.ink(&i.clone().offset(rhizo_core::Point::new(n.rect.x, n.rect.y)));
+        }
+    }
+
+    /// A typed node's badge, subtitle, card rows: the SVG writer's `ink`.
+    fn ink(&mut self, i: &Ink) {
+        match i {
+            Ink::Text { text, x, baseline, size, weight, color, end, .. } => {
+                self.text_line(text, *x, *baseline, *size, *weight, *color, if *end { 1.0 } else { 0.0 });
+            }
+            Ink::Tag { rect: r, fill, text, size, color, .. } => {
+                self.fill(&RoundedRect::from_rect(rect(r), 3.0), *fill);
+                let c = r.center();
+                self.text_line(text, c.x, c.y + size * 0.35, *size, 700, *color, 0.5);
+            }
+            Ink::Rule { from, to, color, width } => {
+                self.stroke(&Line::new(pt(*from), pt(*to)), *color, &Stroke::new(*width as f64));
+            }
+            Ink::Band { rect: r, radius, fill } => {
+                let rr = radius.min(r.height).min(r.width / 2.0).max(0.0) as f64;
+                self.fill(&RoundedRect::from_rect(rect(r), RoundedRectRadii::new(rr, rr, 0.0, 0.0)), *fill);
+            }
+        }
     }
 
     /// Centered lines; the same baseline math as the SVG writer.
@@ -197,7 +231,7 @@ impl Cx<'_> {
         let top = cy - lh * lines.len() as f32 / 2.0;
         for (i, line) in lines.iter().enumerate() {
             let baseline = top + lh * (i as f32 + 0.5) + size * 0.35;
-            self.text_line(line, cx, baseline, size, weight, color, true);
+            self.text_line(line, cx, baseline, size, weight, color, 0.5);
         }
     }
 
@@ -210,13 +244,14 @@ impl Cx<'_> {
         size: f32,
         weight: u16,
         color: Color,
-        centered: bool,
+        // 0 starts the text at `x`, 0.5 centers it there, 1 ends it there.
+        align: f32,
     ) -> f32 {
         if text.is_empty() {
             return 0.0;
         }
         let Some(shaped) = self.fonts.shape(text, size, weight) else { return 0.0 };
-        let x0 = if centered { x - shaped.width / 2.0 } else { x };
+        let x0 = x - shaped.width * align;
         let font = self.cache.get(&shaped.font.0, shaped.font.1);
         self.s
             .draw_glyphs(&font)
