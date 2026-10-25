@@ -32,7 +32,7 @@ miette = { workspace = true, features = ["fancy"] }
 # The native menu bar. macOS only: elsewhere the ⌘K palette and the keys are the menu.
 # 0.19 was picked while the workspace targeted Rust 1.85; 0.20+ (needs 1.90) is possible now.
 [target.'cfg(target_os = "macos")'.dependencies]
-muda = { version = "0.19", default-features = false }
+muda = { version = "0.21", default-features = false }
 
 [dev-dependencies]
 png = "0.18"
