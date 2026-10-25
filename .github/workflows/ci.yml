@@ -35,7 +35,8 @@ jobs:
 
   test:
     # The viewer (rhizo-view) builds on all three. The GPU tests in crates/app/tests/offscreen.rs
-    # skip themselves when there is no adapter, as on Woodpecker; the OpenTofu suites are
+    # skip themselves when there is no adapter, as on Woodpecker, and are left out on Windows
+    # (below); the OpenTofu suites are
     # #[ignore]d and run in tofu.yml.
     name: test (${{ matrix.os }})
     strategy:
@@ -61,7 +62,17 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends fonts-dejavu-core
       # Per OS: the macOS menu bar (muda) and other cfg(target_os) code is only linted where it builds.
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
+      - name: Tests
+        if: runner.os != 'Windows'
+        run: cargo test --workspace --locked
+      # Windows runners have no GPU, only Microsoft's software adapter (WARP): it reports an
+      # adapter, so the offscreen GPU tests start, and vello's compute shaders crash it
+      # (STATUS_ACCESS_VIOLATION). Everything else, the viewer's unit tests included, runs.
+      - name: Tests (without the offscreen GPU tests)
+        if: runner.os == 'Windows'
+        run: |
+          cargo test --workspace --locked --exclude rhizo-app
+          cargo test -p rhizo-app --locked --lib --bins --test projects --test scenario
 
   wasm:
     runs-on: ubuntu-latest
