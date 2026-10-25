@@ -33,7 +33,7 @@ semver = "1.0"
 sha2 = "0.11"
 rmcp = { version = "3.6", default-features = false, features = ["server", "macros", "transport-io"] }
 tokio = { version = "1", features = ["rt"] }
-base64 = "0.22"
+base64 = "0.23"
 roxmltree = "0.20"
 clap = { version = "4.6", features = ["derive"] }
 # usvg/resvg are pinned to the version krilla-svg is built against so only one
