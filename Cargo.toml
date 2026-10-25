@@ -38,8 +38,8 @@ roxmltree = "0.20"
 clap = { version = "4.6", features = ["derive"] }
 # usvg/resvg are pinned to the version krilla-svg is built against so only one
 # usvg ends up in the tree.
-usvg = "0.47"
-resvg = "0.47"
+usvg = "0.48"
+resvg = "0.48"
 krilla = "0.8"
 krilla-svg = "0.8"
 ttf-parser = "0.25"
