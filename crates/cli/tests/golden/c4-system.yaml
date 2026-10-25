@@ -1,0 +1,71 @@
+title: 'Online shop: context, containers, components'
+styles:
+  person:
+    fill: '#1d4ed8'
+    stroke: '#1d4ed8'
+    shape: pill
+  external:
+    line: dashed
+  store:
+    shape: hexagon
+frames:
+- id: context
+  label: System context
+  layout: layered
+  direction: down
+  nodes:
+  - label: Customer
+    class:
+    - person
+    note: Browses the catalog, orders and pays
+  - label: Payment provider
+    id: payments
+    class:
+    - external
+  - label: Email service
+    id: email
+    class:
+    - external
+  edges:
+  - from: customer
+    to: web
+    label: shops with
+  - from: checkout
+    to: payments
+    label: charges
+  - from: checkout
+    to: email
+    label: sends receipts
+  frames:
+  - id: shop
+    label: Online shop
+    layout: layered
+    direction: down
+    nodes:
+    - label: Web shop
+      id: web
+      note: Single-page app in the browser
+    - label: Orders DB
+      class:
+      - store
+    edges:
+    - from: web
+      to: orders-ctl
+      label: JSON over HTTPS
+    - from: repo
+      to: orders-db
+      label: SQL
+    frames:
+    - label: API
+      layout: layered
+      direction: right
+      nodes:
+      - label: Orders controller
+        id: orders-ctl
+      - label: Checkout service
+        id: checkout
+      - label: Order repository
+        id: repo
+      edges:
+      - orders-ctl -> checkout
+      - checkout -> repo

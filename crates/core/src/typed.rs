@@ -222,6 +222,77 @@ impl Prov {
     }
 }
 
+/// What a typed node shows besides its label, worked out from its kit's
+/// `look`: a badge, a subtitle, a state, and whether it is drawn as a card
+/// with rows. For drawing only: kits fill [`crate::Document::decor`] before
+/// layout, and it is never written to files.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Decor {
+    /// A small tag next to the label: `POST`, `LAMBDA`, `ACCEPTED`.
+    pub badge: Option<Badge>,
+    /// A muted line under the label: `/orders`.
+    pub subtitle: Option<String>,
+    pub state: DecorState,
+    /// Accent for a card's title band or a container's outline: a tone name
+    /// or a color, empty for neutral.
+    pub tone: String,
+    /// Drawn as a card: a title band, then one row per child that has
+    /// [`Decor::row`] set (an entity and its fields).
+    pub card: bool,
+    /// Drawn as a container: its children are drawn inside it (a VPC and
+    /// its subnets) instead of as separate boxes joined by branches.
+    pub container: bool,
+    /// Set on a child drawn as a row of its parent's card.
+    pub row: Option<DecorRow>,
+}
+
+/// A small colored tag. `tone` is a tone name (`blue`, `green`, …) or a
+/// color; empty means neutral.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Badge {
+    pub text: String,
+    pub tone: String,
+}
+
+/// One row of a card: the label on the left, `detail` on the right.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DecorRow {
+    pub detail: Option<String>,
+    /// Required: drawn bold with a marker.
+    pub strong: bool,
+    /// A tag after the label, such as `PII`.
+    pub marker: Option<Badge>,
+}
+
+/// How settled a node is: a proposal draws dashed and muted, a rejected or
+/// superseded one greyed out and struck through.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum DecorState {
+    #[default]
+    Normal,
+    Draft,
+    Void,
+}
+
+impl DecorState {
+    pub fn name(self) -> &'static str {
+        match self {
+            DecorState::Normal => "normal",
+            DecorState::Draft => "draft",
+            DecorState::Void => "void",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<DecorState> {
+        Some(match s {
+            "normal" => DecorState::Normal,
+            "draft" => DecorState::Draft,
+            "void" => DecorState::Void,
+            _ => return None,
+        })
+    }
+}
+
 /// `aws.s3.bucket`: two or more dot-separated `[a-z][a-z0-9-]*` segments.
 pub fn is_dotted_type(s: &str) -> bool {
     let mut n = 0;

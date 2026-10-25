@@ -132,6 +132,9 @@ impl Writer {
         for (name, iri) in &f.prefixes {
             self.line(0, &format!("prefix {} {}", kdl_string(name), quoted(iri)));
         }
+        for (alias, path) in &f.imports {
+            self.line(0, &format!("import {} as={}", quoted(path), kdl_string(alias)));
+        }
         if !f.styles.is_empty() {
             self.blank();
             for (name, style) in &f.styles {
@@ -149,7 +152,7 @@ impl Writer {
         }
         for fr in &f.frames {
             self.blank();
-            self.frame(fr);
+            self.frame(fr, 0);
         }
         if !f.edges.is_empty() {
             self.blank();
@@ -159,7 +162,7 @@ impl Writer {
         }
     }
 
-    fn frame(&mut self, f: &FrameDef) {
+    fn frame(&mut self, f: &FrameDef, depth: usize) {
         let mut s = String::from("frame");
         if let Some(l) = &f.label {
             let _ = write!(s, " {}", quoted(l));
@@ -186,24 +189,30 @@ impl Writer {
             let _ = write!(s, " type={}", kdl_string(t));
         }
         style_props(&f.style, &mut s);
-        if f.nodes.is_empty() && f.edges.is_empty() && f.props.is_empty() {
-            self.line(0, &s);
+        if f.nodes.is_empty() && f.edges.is_empty() && f.props.is_empty() && f.frames.is_empty() {
+            self.line(depth, &s);
             return;
         }
         s.push_str(" {");
-        self.line(0, &s);
-        self.props(&f.props, 1);
+        self.line(depth, &s);
+        self.props(&f.props, depth + 1);
         let keyword = node_keyword(f.layout);
         for n in &f.nodes {
-            self.node(n, 1, keyword);
+            self.node(n, depth + 1, keyword);
         }
-        if !f.edges.is_empty() && !f.nodes.is_empty() {
+        for (k, fr) in f.frames.iter().enumerate() {
+            if k > 0 || !f.nodes.is_empty() || !f.props.is_empty() {
+                self.out.push('\n');
+            }
+            self.frame(fr, depth + 1);
+        }
+        if !f.edges.is_empty() && !(f.nodes.is_empty() && f.frames.is_empty()) {
             self.out.push('\n');
         }
         for e in &f.edges {
-            self.edge(e, 1);
+            self.edge(e, depth + 1);
         }
-        self.line(0, "}");
+        self.line(depth, "}");
     }
 
     fn node(&mut self, n: &NodeDef, depth: usize, keyword: &str) {
@@ -413,7 +422,15 @@ impl Writer {
     }
 }
 
-fn jik_scalar(v: &Value) -> Option<String> {
+/// `name` = `v` as canonical JiK lines, without indentation of their own
+/// (nested lines are indented by their depth).
+pub(crate) fn jik_lines(name: &str, v: &Value) -> Vec<String> {
+    let mut w = Writer { out: String::new() };
+    w.value(&kdl_string(name), v, 0);
+    w.out.lines().map(str::to_string).collect()
+}
+
+pub(crate) fn jik_scalar(v: &Value) -> Option<String> {
     Some(match v {
         Value::Null => "#null".into(),
         Value::Bool(b) => if *b { "#true" } else { "#false" }.into(),
@@ -426,7 +443,7 @@ fn jik_scalar(v: &Value) -> Option<String> {
 /// `-` reads like an outline, which is what trees and mindmaps are.
 fn node_keyword(layout: Option<LayoutKind>) -> &'static str {
     match layout {
-        Some(LayoutKind::Layered | LayoutKind::Grid | LayoutKind::Free) => "node",
+        Some(LayoutKind::Layered | LayoutKind::Grid | LayoutKind::Free | LayoutKind::Sequence) => "node",
         _ => "-",
     }
 }

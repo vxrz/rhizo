@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Checkout</title>
+  </head>
+  <body>
+    <outline text="Customer"/>
+    <outline text="Web app"/>
+    <outline text="Orders API"/>
+    <outline text="Payments"/>
+  </body>
+</opml>

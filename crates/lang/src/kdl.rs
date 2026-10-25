@@ -32,12 +32,33 @@ use crate::diag::{Diagnostic, suggest};
 
 pub const FORMAT_VERSION: i128 = 2;
 
-const TOP_LEVEL: &[&str] =
-    &["rhizo", "title", "theme", "layout", "direction", "use", "base", "prefix", "style", "frame", "node", "-", "edge"];
-const STYLE_PROPS: &[&str] = &["fill", "stroke", "text", "stroke-width", "font-size", "font-weight", "line", "shape"];
-const NODE_PROPS: &[&str] = &["id", "label", "class", "x", "y", "note", "link", "tags", "type"];
-const EDGE_PROPS: &[&str] = &["label", "arrow", "class", "id", "type", "kind", "from-port", "to-port"];
-const FRAME_PROPS: &[&str] = &["id", "label", "layout", "direction", "x", "y", "columns", "type"];
+/// Statements at the top of a file.
+pub const TOP_LEVEL: &[&str] = &[
+    "rhizo",
+    "title",
+    "theme",
+    "layout",
+    "direction",
+    "use",
+    "base",
+    "prefix",
+    "import",
+    "style",
+    "frame",
+    "node",
+    "-",
+    "edge",
+];
+/// Looks, on nodes, edges, frames and `style` definitions.
+pub const STYLE_PROPS: &[&str] =
+    &["fill", "stroke", "text", "stroke-width", "font-size", "font-weight", "line", "shape"];
+pub const NODE_PROPS: &[&str] = &["id", "label", "class", "x", "y", "note", "link", "tags", "type"];
+pub const EDGE_PROPS: &[&str] = &["label", "arrow", "class", "id", "type", "kind", "from-port", "to-port"];
+pub const FRAME_PROPS: &[&str] = &["id", "label", "layout", "direction", "x", "y", "columns", "type"];
+/// Statements inside a frame, a node and an edge.
+pub const FRAME_CHILDREN: &[&str] = &["node", "-", "edge", "frame", "props"];
+pub const NODE_CHILDREN: &[&str] = &["node", "-", "note", "props", "port", "accept", "prov"];
+pub const EDGE_CHILDREN: &[&str] = &["props", "prov"];
 
 /// Parses KDL source. Returns the AST and every diagnostic; the AST is only
 /// meaningful when no diagnostic is an error.
@@ -75,6 +96,12 @@ struct Parser {
 struct Entries<'a> {
     args: Vec<&'a KdlEntry>,
     props: Vec<(&'a str, &'a KdlEntry)>,
+}
+
+/// `shared/data-model.rhizo` → `data-model`.
+pub fn import_alias(path: &str) -> String {
+    let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+    name.split('.').next().unwrap_or(name).to_string()
 }
 
 fn entries(node: &KdlNode) -> Entries<'_> {
@@ -241,6 +268,31 @@ impl Parser {
                         }
                     }
                 }
+                "import" => {
+                    let e = entries(node);
+                    let path = e.args.first().and_then(|a| self.string(a));
+                    let mut alias = None;
+                    for (key, entry) in e.props {
+                        match key {
+                            "as" => alias = self.string(entry),
+                            other => self.unknown("`import` property", other, entry.span(), &["as"]),
+                        }
+                    }
+                    match path {
+                        Some(path) if e.args.len() == 1 => {
+                            // Default alias: the file name without extension.
+                            let alias = alias.unwrap_or_else(|| import_alias(&path));
+                            if file.imports.insert(alias.clone(), path).is_some() {
+                                self.err(format!("two imports named `{alias}`"), node.span()).help =
+                                    Some("give one a different name with `as=`".into());
+                            }
+                        }
+                        _ => {
+                            self.err("`import` takes one file path", node.span()).help =
+                                Some("import \"model.rhizo\" as=model".into());
+                        }
+                    }
+                }
                 "title" => file.title = self.single_string(node),
                 "theme" => file.theme = self.single_string(node),
                 "layout" => {
@@ -251,10 +303,10 @@ impl Parser {
                         self.single(node).and_then(|e| self.keyword(e, "direction", Direction::parse, DIRECTIONS))
                 }
                 "style" => {
-                    if let Some((name, style)) = self.style_def(node) {
-                        if file.styles.insert(name.clone(), style).is_some() {
-                            self.warn(format!("style `{name}` is defined twice; the last one wins"), node.span());
-                        }
+                    if let Some((name, style)) = self.style_def(node)
+                        && file.styles.insert(name.clone(), style).is_some()
+                    {
+                        self.warn(format!("style `{name}` is defined twice; the last one wins"), node.span());
                     }
                 }
                 "frame" => {
@@ -366,9 +418,8 @@ impl Parser {
                 "node" | "-" => f.nodes.extend(self.node(child, None)),
                 "edge" => f.edges.extend(self.edge(child)),
                 "props" => f.props = self.props(child),
-                other => {
-                    self.unknown("statement in frame", other, child.name().span(), &["node", "-", "edge", "props"])
-                }
+                "frame" => f.frames.extend(self.frame(child)),
+                other => self.unknown("statement in frame", other, child.name().span(), FRAME_CHILDREN),
             }
         }
         Some(f)
@@ -427,12 +478,7 @@ impl Parser {
                 "edge" => {
                     self.err("edges go in a frame or at the top level, not inside a node", child.span());
                 }
-                other => self.unknown(
-                    "statement in node",
-                    other,
-                    child.name().span(),
-                    &["node", "-", "note", "props", "port", "accept", "prov"],
-                ),
+                other => self.unknown("statement in node", other, child.name().span(), NODE_CHILDREN),
             }
         }
         match label {
@@ -481,7 +527,7 @@ impl Parser {
             match child.name().value() {
                 "props" => template.props = self.props(child),
                 "prov" => template.prov = self.prov(child),
-                other => self.unknown("statement in edge", other, child.name().span(), &["props", "prov"]),
+                other => self.unknown("statement in edge", other, child.name().span(), EDGE_CHILDREN),
             }
         }
         if template.id.is_some() && ends.len() > 2 {
@@ -725,7 +771,7 @@ impl Parser {
     }
 }
 
-const LAYOUTS: &[&str] = &["auto", "mindmap", "tree", "layered", "grid", "force", "free"];
+const LAYOUTS: &[&str] = &["auto", "mindmap", "tree", "layered", "grid", "force", "free", "sequence"];
 const DIRECTIONS: &[&str] = &["right", "left", "down", "up"];
 
 #[cfg(test)]

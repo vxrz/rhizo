@@ -1,0 +1,31 @@
+---
+title: "Online shop: context, containers, components"
+---
+flowchart TD
+    subgraph context["System context"]
+        customer(["Customer"])
+        payments("Payment provider")
+        email("Email service")
+        subgraph shop["Online shop"]
+            web("Web shop")
+            orders_db{{"Orders DB"}}
+            subgraph api["API"]
+                direction LR
+                orders_ctl("Orders controller")
+                checkout("Checkout service")
+                repo("Order repository")
+            end
+        end
+    end
+    orders_ctl --> checkout
+    checkout --> repo
+    web -->|"JSON over HTTPS"| orders_ctl
+    repo -->|"SQL"| orders_db
+    customer -->|"shops with"| web
+    checkout -->|"charges"| payments
+    checkout -->|"sends receipts"| email
+    classDef person fill:#1d4ed8,stroke:#1d4ed8
+    classDef external stroke-dasharray:5 5
+    class customer person
+    class payments,email external
+    class orders_db store

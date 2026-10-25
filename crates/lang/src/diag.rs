@@ -151,7 +151,7 @@ pub(crate) fn suggest_name<'a>(word: &str, candidates: impl IntoIterator<Item = 
 }
 
 /// The closest candidate within a small edit distance.
-pub(crate) fn suggest<'a>(word: &str, candidates: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+pub fn suggest<'a>(word: &str, candidates: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
     let max = (word.chars().count() / 3).max(1);
     candidates
         .into_iter()

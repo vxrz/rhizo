@@ -9,6 +9,7 @@ pub mod diag;
 pub mod edit;
 pub mod kdl;
 pub mod lower;
+pub mod starters;
 pub mod write;
 
 pub use diag::{Diagnostic, Report, Severity};
@@ -45,7 +46,10 @@ impl Loaded {
 
 pub fn parse(src: &str, syntax: Syntax) -> (ast::File, Vec<Diagnostic>) {
     match syntax {
-        Syntax::Kdl => kdl::parse(src),
+        Syntax::Kdl => match too_deep(src) {
+            Some(d) => (ast::File::default(), vec![d]),
+            None => kdl::parse(src),
+        },
         Syntax::Json => match serde_json::from_str(src) {
             Ok(f) => {
                 let d = unknown_keys(&f);
@@ -67,6 +71,49 @@ pub fn parse(src: &str, syntax: Syntax) -> (ast::File, Vec<Diagnostic>) {
             }
         },
     }
+}
+
+/// Deepest nesting rhizo reads. Recursive parsing past this could overflow
+/// the stack and abort the process; real diagrams stay far below it.
+pub const MAX_DEPTH: usize = 200;
+
+/// A KDL text nested deeper than [`MAX_DEPTH`] braces, found without
+/// parsing (strings and `//` comments are skipped).
+fn too_deep(src: &str) -> Option<Diagnostic> {
+    let (mut depth, mut max, mut at) = (0usize, 0usize, 0usize);
+    let mut chars = src.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        match c {
+            '"' => {
+                while let Some((_, c)) = chars.next() {
+                    match c {
+                        '\\' => {
+                            chars.next();
+                        }
+                        '"' => break,
+                        _ => {}
+                    }
+                }
+            }
+            '/' if chars.peek().is_some_and(|(_, n)| *n == '/') => {
+                for (_, c) in chars.by_ref() {
+                    if c == '\n' {
+                        break;
+                    }
+                }
+            }
+            '{' => {
+                depth += 1;
+                if depth > max {
+                    (max, at) = (depth, i);
+                }
+            }
+            '}' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    (max > MAX_DEPTH)
+        .then(|| Diagnostic::error(format!("nested {max} levels deep; rhizo reads at most {MAX_DEPTH}"), Some((at, 1))))
 }
 
 pub fn load(src: &str, syntax: Syntax) -> Loaded {
@@ -110,7 +157,7 @@ const NODE_KEYS: &[&str] =
 const EDGE_KEYS: &[&str] =
     &["from", "to", "label", "arrow", "class", "id", "type", "kind", "from-port", "to-port", "props", "prov"];
 const FRAME_KEYS: &[&str] =
-    &["id", "label", "layout", "direction", "x", "y", "columns", "type", "props", "nodes", "edges"];
+    &["id", "label", "layout", "direction", "x", "y", "columns", "type", "props", "nodes", "edges", "frames"];
 
 /// JSON and YAML objects that carried keys the schema does not know. These
 /// used to be dropped silently; now they are errors, like in KDL.
@@ -137,7 +184,7 @@ fn unknown_keys(file: &ast::File) -> Vec<Diagnostic> {
     for e in &file.edges {
         report("edge", &e.extra, EDGE_KEYS, &mut out);
     }
-    for f in &file.frames {
+    for f in file.all_frames() {
         report("frame", &f.extra, FRAME_KEYS, &mut out);
         nodes(&f.nodes, &mut out);
         for e in &f.edges {
@@ -210,6 +257,75 @@ edge pricing "Tests pass?" arrow=both
         assert_eq!(load(&yaml, Syntax::Yaml).into_result().unwrap().0, doc);
     }
 
+    const NESTED: &str = r##"rhizo version=1
+title "Shop"
+
+- "Customer" shape=pill
+
+frame "Shop system" id=shop layout=layered direction=right {
+    node "Web app"
+
+    frame "Backend" layout=layered {
+        node "API"
+        node "Worker"
+
+        frame "Data" layout=grid {
+            node "Orders DB" shape=hexagon
+        }
+
+        edge api worker
+    }
+
+    frame "Ops" layout=grid {
+        node "Logs"
+    }
+
+    edge web-app api label="JSON"
+    edge worker logs
+}
+
+edge customer web-app
+"##;
+
+    #[test]
+    fn nested_frames_lower_with_parents_and_round_trip() {
+        let loaded = load(NESTED, Syntax::Kdl);
+        assert!(!loaded.has_errors(), "{:#?}", loaded.diagnostics);
+        let d = loaded.document;
+        let parent = |id: &str| d.frame(&id.into()).unwrap().parent.as_ref().map(|p| p.to_string());
+        let ids: Vec<&str> = d.frames.iter().map(|f| f.id.as_str()).collect();
+        assert_eq!(ids, ["main", "shop", "backend", "data", "ops"]);
+        assert_eq!(parent("shop"), None);
+        assert_eq!(parent("backend").as_deref(), Some("shop"));
+        assert_eq!(parent("data").as_deref(), Some("backend"));
+        assert_eq!(parent("ops").as_deref(), Some("shop"));
+        assert_eq!(d.nodes[&rhizo_core::NodeId::from("orders-db")].frame.as_str(), "data");
+        assert!(d.frame_within(&"data".into(), &"shop".into()));
+
+        // fmt keeps the nesting, and each edge stays in the innermost frame holding both ends.
+        assert_eq!(to_kdl(&d), NESTED);
+        let json = to_json(&d);
+        assert_eq!(load(&json, Syntax::Json).into_result().unwrap().0, d);
+        assert_eq!(load(&to_yaml(&d), Syntax::Yaml).into_result().unwrap().0, d);
+    }
+
+    #[test]
+    fn nested_frame_errors() {
+        let mut src = String::new();
+        for i in 0..=rhizo_core::MAX_FRAME_DEPTH + 1 {
+            src.push_str(&format!("frame \"F{i}\" {{\n"));
+        }
+        src.push_str(&"}\n".repeat(rhizo_core::MAX_FRAME_DEPTH + 2));
+        let loaded = load(&src, Syntax::Kdl);
+        assert!(loaded.diagnostics.iter().any(|d| d.is_error() && d.message.contains("nest at most")));
+
+        let loaded = load("frame \"S\" layout=sequence {\n    frame \"X\"\n}", Syntax::Kdl);
+        assert!(loaded.diagnostics.iter().any(|d| d.is_error() && d.message.contains("sequence frame")));
+
+        let loaded = load("frame \"A\" id=a { frame \"B\" id=a }", Syntax::Kdl);
+        assert!(loaded.has_errors(), "a nested frame's id is unique across the document too");
+    }
+
     #[test]
     fn yaml_shorthand() {
         let src = "title: Plan\nnodes:\n  - label: Root\n    children: [A, B]\nedges:\n  - a -> b\n  - from: b\n    to: root\n    label: back\n";
@@ -257,6 +373,26 @@ edge pricing "Tests pass?" arrow=both
     fn duplicate_ids() {
         let loaded = load("- \"A\" id=x\n- \"B\" id=x", Syntax::Kdl);
         assert!(loaded.diagnostics[0].message.contains("more than once"));
+    }
+
+    #[test]
+    fn sequence_layout_roundtrips() {
+        let src = "layout seq\nnode \"A\"\nnode \"B\"\nedge a b label=ping\nedge b a label=pong line=dashed\nframe \"S\" layout=sequence {\n    edge \"X\" \"X\"\n}";
+        let doc = load(src, Syntax::Kdl).into_result().unwrap().0;
+        assert!(doc.frames.iter().all(|f| f.layout == rhizo_core::LayoutKind::Sequence));
+        let kdl = to_kdl(&doc);
+        assert!(kdl.contains("layout sequence") && kdl.contains("layout=sequence"), "{kdl}");
+        assert_eq!(load(&kdl, Syntax::Kdl).into_result().unwrap().0, doc);
+        assert_eq!(load(&to_json(&doc), Syntax::Json).into_result().unwrap().0, doc);
+        assert_eq!(load(&to_yaml(&doc), Syntax::Yaml).into_result().unwrap().0, doc);
+        assert!(json_schema().to_string().contains("\"sequence\""));
+    }
+
+    #[test]
+    fn nesting_in_a_sequence_warns() {
+        let loaded = load("layout sequence\n- \"A\" { - \"B\" }", Syntax::Kdl);
+        assert!(!loaded.has_errors());
+        assert!(loaded.diagnostics.iter().any(|d| d.message.contains("nesting has no meaning")));
     }
 
     #[test]

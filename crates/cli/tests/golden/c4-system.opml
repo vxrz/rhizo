@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Online shop: context, containers, components</title>
+  </head>
+  <body>
+    <outline text="System context">
+      <outline text="Customer" _note="Browses the catalog, orders and pays"/>
+      <outline text="Payment provider"/>
+      <outline text="Email service"/>
+    </outline>
+    <outline text="Online shop">
+      <outline text="Web shop" _note="Single-page app in the browser"/>
+      <outline text="Orders DB"/>
+    </outline>
+    <outline text="API">
+      <outline text="Orders controller"/>
+      <outline text="Checkout service"/>
+      <outline text="Order repository"/>
+    </outline>
+  </body>
+</opml>

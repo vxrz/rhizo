@@ -7,6 +7,33 @@ pub fn effective(doc: &Document, frame: &Frame) -> LayoutKind {
     rhizo_layout::effective_layout(doc, frame)
 }
 
+/// Entering or leaving a frame, in nesting order.
+pub enum Visit<'a> {
+    Open(&'a Frame, usize),
+    Close(&'a Frame, usize),
+}
+
+/// Walks the frames as they nest: each frame opens, then the frames inside
+/// it open and close, then it closes. Depth 0 is the top level. Flat
+/// documents give open, close, open, close… in document order.
+pub fn frame_tree(doc: &Document) -> Vec<Visit<'_>> {
+    let parent = |f: &Frame| rhizo_layout::layout_parent(doc, f).cloned();
+    let mut out = Vec::new();
+    let mut stack: Vec<(&Frame, usize, bool)> =
+        doc.frames.iter().rev().filter(|f| parent(f).is_none()).map(|f| (f, 0, false)).collect();
+    while let Some((f, depth, closing)) = stack.pop() {
+        if closing {
+            out.push(Visit::Close(f, depth));
+            continue;
+        }
+        out.push(Visit::Open(f, depth));
+        stack.push((f, depth, true));
+        let kids = doc.frames.iter().rev().filter(|c| parent(c).as_ref() == Some(&f.id));
+        stack.extend(kids.map(|c| (c, depth + 1, false)));
+    }
+    out
+}
+
 /// Byte span of line `idx` of `src[base..]`, in `src` coordinates.
 pub fn line_span(src: &str, base: usize, idx: usize) -> Span {
     let mut off = base;

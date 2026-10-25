@@ -1,0 +1,98 @@
+{
+  "nodes": [
+    {
+      "id": "customer",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 104,
+      "height": 37,
+      "text": "Customer"
+    },
+    {
+      "id": "web",
+      "type": "text",
+      "x": 152,
+      "y": 0,
+      "width": 86,
+      "height": 37,
+      "text": "Web app"
+    },
+    {
+      "id": "api",
+      "type": "text",
+      "x": 286,
+      "y": 0,
+      "width": 101,
+      "height": 37,
+      "text": "Orders API"
+    },
+    {
+      "id": "pay",
+      "type": "text",
+      "x": 435,
+      "y": 0,
+      "width": 95,
+      "height": 37,
+      "text": "Payments"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "customer",
+      "fromSide": "right",
+      "toNode": "web",
+      "toSide": "left",
+      "label": "Place order"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "web",
+      "fromSide": "right",
+      "toNode": "api",
+      "toSide": "left",
+      "label": "POST /orders"
+    },
+    {
+      "id": "edge-3",
+      "fromNode": "api",
+      "fromSide": "right",
+      "toNode": "pay",
+      "toSide": "left",
+      "label": "Charge card"
+    },
+    {
+      "id": "edge-4",
+      "fromNode": "pay",
+      "fromSide": "left",
+      "toNode": "api",
+      "toSide": "right",
+      "label": "charged"
+    },
+    {
+      "id": "edge-5",
+      "fromNode": "api",
+      "fromSide": "right",
+      "toNode": "api",
+      "toSide": "right",
+      "label": "Save order"
+    },
+    {
+      "id": "edge-6",
+      "fromNode": "api",
+      "fromSide": "left",
+      "toNode": "web",
+      "toSide": "right",
+      "label": "201 Created"
+    },
+    {
+      "id": "edge-7",
+      "fromNode": "web",
+      "fromSide": "left",
+      "toNode": "customer",
+      "toSide": "right",
+      "label": "Confirmation"
+    }
+  ]
+}

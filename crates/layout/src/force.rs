@@ -9,6 +9,12 @@
 //! O(n²) per iteration: fine to a few thousand nodes.
 // shortcut: all-pairs stress; switch to sparse stress (pivots) for 10k+ nodes (K7).
 
+/// Iterations after an edit, from the previous layout: enough to make room
+/// for what changed, few enough that the rest stays put.
+const KEPT_ROUNDS: usize = 30;
+/// How hard a node is held where it was, against all its stress terms.
+const KEEP: f64 = 3.0;
+
 pub struct Spacing {
     /// Gap between two connected nodes' borders.
     pub edge: f32,
@@ -19,6 +25,20 @@ pub struct Spacing {
 /// Centers for nodes of the given `(width, height)`, top-left of the whole
 /// drawing at 0,0.
 pub fn layout(size: &[(f32, f32)], edges: &[(usize, usize)], sp: &Spacing) -> Vec<(f32, f32)> {
+    layout_from(size, edges, sp, &[])
+}
+
+/// After an edit: iterations that start from the previous layout's centers
+/// (`before`, where there is one), so the drawing settles near where it
+/// was instead of from a circle, and does not turn or mirror. New nodes
+/// start beside their neighbors. Components stay where they were; new ones
+/// go to the right. Fewer iterations: an edit is a small change.
+pub fn layout_from(
+    size: &[(f32, f32)],
+    edges: &[(usize, usize)],
+    sp: &Spacing,
+    before: &[Option<(f32, f32)>],
+) -> Vec<(f32, f32)> {
     let n = size.len();
     let mut adj = vec![Vec::new(); n];
     for &(a, b) in edges {
@@ -30,12 +50,45 @@ pub fn layout(size: &[(f32, f32)], edges: &[(usize, usize)], sp: &Spacing) -> Ve
     let mut pos = vec![(0.0f32, 0.0f32); n];
     let mut seen = vec![false; n];
     let mut x_cursor = 0.0f32;
+    let was = |v: usize| before.get(v).copied().flatten();
+    if (0..n).any(|v| was(v).is_some()) {
+        // New components go right of everything that was there.
+        let right = (0..n).filter_map(|v| Some(was(v)?.0 + size[v].0 / 2.0)).fold(f32::MIN, f32::max);
+        let top = (0..n).filter_map(|v| Some(was(v)?.1 - size[v].1 / 2.0)).fold(f32::MAX, f32::min);
+        x_cursor = right + sp.gap * 2.0;
+        for start in 0..n {
+            if seen[start] {
+                continue;
+            }
+            let comp = bfs_order(&adj, start, &mut seen);
+            let kept = comp.iter().any(|&v| was(v).is_some());
+            let local = if kept {
+                let anchor: Vec<_> = comp.iter().map(|&v| was(v).map(|(x, y)| (x as f64, y as f64))).collect();
+                component(&comp, &adj, size, sp, Some(starts(&comp, &adj, size, sp, &was)), &anchor)
+            } else {
+                component(&comp, &adj, size, sp, None, &[])
+            };
+            if kept {
+                for (k, &v) in comp.iter().enumerate() {
+                    pos[v] = local[k];
+                }
+            } else {
+                let bb = bounds(&comp, &local, size);
+                for (k, &v) in comp.iter().enumerate() {
+                    pos[v] = (local[k].0 - bb.0 + x_cursor, local[k].1 - bb.1 + top);
+                }
+                x_cursor += bb.2 - bb.0 + sp.gap * 2.0;
+            }
+        }
+        remove_overlaps(&mut pos, size, sp.gap);
+        return pos;
+    }
     for start in 0..n {
         if seen[start] {
             continue;
         }
         let comp = bfs_order(&adj, start, &mut seen);
-        let local = component(&comp, &adj, size, sp);
+        let local = component(&comp, &adj, size, sp, None, &[]);
         // Pack components left to right, tops aligned.
         let bb = bounds(&comp, &local, size);
         for (k, &v) in comp.iter().enumerate() {
@@ -71,12 +124,55 @@ fn bfs_order(adj: &[Vec<usize>], start: usize, seen: &mut [bool]) -> Vec<usize> 
     order
 }
 
-/// Stress majorization for one connected component. Returns centers in
-/// `comp` order.
-fn component(comp: &[usize], adj: &[Vec<usize>], size: &[(f32, f32)], sp: &Spacing) -> Vec<(f32, f32)> {
+/// Where a component's nodes start from after an edit, in `comp` order:
+/// where they were, or (new) a step from the neighbors placed before them.
+fn starts(
+    comp: &[usize],
+    adj: &[Vec<usize>],
+    size: &[(f32, f32)],
+    sp: &Spacing,
+    was: &dyn Fn(usize) -> Option<(f32, f32)>,
+) -> Vec<(f64, f64)> {
+    let mut at: std::collections::HashMap<usize, (f64, f64)> =
+        comp.iter().filter_map(|&v| Some((v, was(v).map(|(x, y)| (x as f64, y as f64))?))).collect();
+    // BFS order reaches every new node through a placed one, except when
+    // the component's first node is new too; that one starts at the mean.
+    let n = at.len().max(1) as f64;
+    let mean = at.values().fold((0.0, 0.0), |a, p| (a.0 + p.0 / n, a.1 + p.1 / n));
+    for (k, &v) in comp.iter().enumerate() {
+        if at.contains_key(&v) {
+            continue;
+        }
+        let near: Vec<(f64, f64)> = adj[v].iter().filter_map(|w| at.get(w).copied()).collect();
+        let base = if near.is_empty() {
+            mean
+        } else {
+            let c = near.len() as f64;
+            near.iter().fold((0.0, 0.0), |a, p| (a.0 + p.0 / c, a.1 + p.1 / c))
+        };
+        // A fixed step in a direction set by the node's place, so new
+        // siblings do not start on top of each other.
+        let step = (size[v].0.max(size[v].1) + sp.edge) as f64;
+        let angle = k as f64 * 2.399_963; // the golden angle
+        at.insert(v, (base.0 + step * angle.cos(), base.1 + step * angle.sin()));
+    }
+    comp.iter().map(|v| at[v]).collect()
+}
+
+/// Stress majorization for one connected component, from a circle or from
+/// `start`. Returns centers in `comp` order.
+fn component(
+    comp: &[usize],
+    adj: &[Vec<usize>],
+    size: &[(f32, f32)],
+    sp: &Spacing,
+    start: Option<Vec<(f64, f64)>>,
+    anchor: &[Option<(f64, f64)>],
+) -> Vec<(f32, f32)> {
     let m = comp.len();
     if m == 1 {
-        return vec![(0.0, 0.0)];
+        let (x, y) = start.map_or((0.0, 0.0), |s| s[0]);
+        return vec![(x as f32, y as f32)];
     }
     let local: std::collections::HashMap<usize, usize> = comp.iter().enumerate().map(|(k, &v)| (v, k)).collect();
     // Edge length from typical box size, so big labels get room.
@@ -103,8 +199,10 @@ fn component(comp: &[usize], adj: &[Vec<usize>], size: &[(f32, f32)], sp: &Spaci
 
     // Deterministic start: a circle in BFS order, sized to the edge length.
     let r = unit * m as f64 / (2.0 * std::f64::consts::PI);
-    let mut x: Vec<(f64, f64)> =
-        (0..m).map(|k| (k as f64 / m as f64) * std::f64::consts::TAU).map(|a| (r * a.cos(), r * a.sin())).collect();
+    let rounds = if start.is_some() { KEPT_ROUNDS } else { 300 };
+    let mut x: Vec<(f64, f64)> = start.unwrap_or_else(|| {
+        (0..m).map(|k| (k as f64 / m as f64) * std::f64::consts::TAU).map(|a| (r * a.cos(), r * a.sin())).collect()
+    });
 
     let target = |i: usize, j: usize| d[i * m + j] as f64 * unit;
     let stress = |x: &[(f64, f64)]| -> f64 {
@@ -119,7 +217,7 @@ fn component(comp: &[usize], adj: &[Vec<usize>], size: &[(f32, f32)], sp: &Spaci
         s
     };
     let mut last = stress(&x);
-    for _ in 0..300 {
+    for _ in 0..rounds {
         for i in 0..m {
             let (mut nx, mut ny, mut wsum) = (0.0, 0.0, 0.0);
             for j in 0..m {
@@ -134,10 +232,19 @@ fn component(comp: &[usize], adj: &[Vec<usize>], size: &[(f32, f32)], sp: &Spaci
                 ny += w * (x[j].1 + t * dy / dist);
                 wsum += w;
             }
+            // After an edit, nodes that were there are also pulled to where
+            // they were (anchored stress), so a new edge bends the drawing
+            // locally instead of reshaping it.
+            if let Some(Some(p)) = anchor.get(i) {
+                let a = KEEP * wsum;
+                nx += a * p.0;
+                ny += a * p.1;
+                wsum += a;
+            }
             x[i] = (nx / wsum, ny / wsum);
         }
         let now = stress(&x);
-        if last - now < 1e-5 * last {
+        if anchor.is_empty() && last - now < 1e-5 * last {
             break;
         }
         last = now;

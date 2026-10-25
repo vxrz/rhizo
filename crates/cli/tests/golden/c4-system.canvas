@@ -1,0 +1,160 @@
+{
+  "nodes": [
+    {
+      "id": "frame-context",
+      "type": "group",
+      "x": 0,
+      "y": 0,
+      "width": 697,
+      "height": 642,
+      "label": "System context"
+    },
+    {
+      "id": "frame-shop",
+      "type": "group",
+      "x": 28,
+      "y": 144,
+      "width": 641,
+      "height": 381,
+      "label": "Online shop"
+    },
+    {
+      "id": "frame-api",
+      "type": "group",
+      "x": 56,
+      "y": 288,
+      "width": 585,
+      "height": 120,
+      "label": "API"
+    },
+    {
+      "id": "customer",
+      "type": "text",
+      "x": 298,
+      "y": 55,
+      "width": 101,
+      "height": 37,
+      "text": "Customer\n\nBrowses the catalog, orders and pays",
+      "color": "#1d4ed8"
+    },
+    {
+      "id": "payments",
+      "type": "text",
+      "x": 201,
+      "y": 577,
+      "width": 140,
+      "height": 37,
+      "text": "Payment provider"
+    },
+    {
+      "id": "email",
+      "type": "text",
+      "x": 369,
+      "y": 577,
+      "width": 115,
+      "height": 37,
+      "text": "Email service"
+    },
+    {
+      "id": "web",
+      "type": "text",
+      "x": 303,
+      "y": 199,
+      "width": 91,
+      "height": 37,
+      "text": "Web shop\n\nSingle-page app in the browser"
+    },
+    {
+      "id": "orders-db",
+      "type": "text",
+      "x": 290,
+      "y": 460,
+      "width": 118,
+      "height": 37,
+      "text": "Orders DB"
+    },
+    {
+      "id": "orders-ctl",
+      "type": "text",
+      "x": 84,
+      "y": 343,
+      "width": 133,
+      "height": 37,
+      "text": "Orders controller"
+    },
+    {
+      "id": "checkout",
+      "type": "text",
+      "x": 281,
+      "y": 343,
+      "width": 138,
+      "height": 37,
+      "text": "Checkout service"
+    },
+    {
+      "id": "repo",
+      "type": "text",
+      "x": 483,
+      "y": 343,
+      "width": 130,
+      "height": 37,
+      "text": "Order repository"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "orders-ctl",
+      "fromSide": "right",
+      "toNode": "checkout",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "checkout",
+      "fromSide": "right",
+      "toNode": "repo",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-3",
+      "fromNode": "web",
+      "fromSide": "bottom",
+      "toNode": "orders-ctl",
+      "toSide": "top",
+      "label": "JSON over HTTPS"
+    },
+    {
+      "id": "edge-4",
+      "fromNode": "repo",
+      "fromSide": "bottom",
+      "toNode": "orders-db",
+      "toSide": "top",
+      "label": "SQL"
+    },
+    {
+      "id": "edge-5",
+      "fromNode": "customer",
+      "fromSide": "bottom",
+      "toNode": "web",
+      "toSide": "top",
+      "label": "shops with"
+    },
+    {
+      "id": "edge-6",
+      "fromNode": "checkout",
+      "fromSide": "bottom",
+      "toNode": "payments",
+      "toSide": "top",
+      "label": "charges"
+    },
+    {
+      "id": "edge-7",
+      "fromNode": "checkout",
+      "fromSide": "bottom",
+      "toNode": "email",
+      "toSide": "top",
+      "label": "sends receipts"
+    }
+  ]
+}

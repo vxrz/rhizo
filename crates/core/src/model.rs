@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::typed::{self, EdgeKind, KitRef, Port, Props, Prov};
+use crate::typed::{self, Decor, EdgeKind, KitRef, Port, Props, Prov};
 use crate::{Arrow, LineStyle, Point, Style};
 
 macro_rules! id_type {
@@ -65,6 +65,9 @@ pub enum LayoutKind {
     Force,
     /// Nodes keep their `x`/`y`; nothing is moved.
     Free,
+    /// A sequence diagram: nodes are participants left to right, edges are
+    /// messages top to bottom, both in document order. Never picked by `auto`.
+    Sequence,
 }
 
 impl LayoutKind {
@@ -77,6 +80,7 @@ impl LayoutKind {
             LayoutKind::Grid => "grid",
             LayoutKind::Force => "force",
             LayoutKind::Free => "free",
+            LayoutKind::Sequence => "sequence",
         }
     }
 
@@ -89,6 +93,7 @@ impl LayoutKind {
             "grid" => LayoutKind::Grid,
             "force" | "network" | "organic" | "stress" => LayoutKind::Force,
             "free" | "freeform" | "canvas" => LayoutKind::Free,
+            "sequence" | "seq" => LayoutKind::Sequence,
             _ => return None,
         })
     }
@@ -148,6 +153,10 @@ pub struct Frame {
     /// Column count for grid layouts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub columns: Option<u32>,
+    /// The frame this one is drawn inside, as one box of its layout. `at`
+    /// is then relative to the parent's content.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<FrameId>,
     #[serde(default, skip_serializing_if = "Style::is_empty")]
     pub style: Style,
     /// True for the frame created for nodes written outside any `frame`.
@@ -169,6 +178,7 @@ impl Frame {
             direction: None,
             at: None,
             columns: None,
+            parent: None,
             style: Style::default(),
             implicit: false,
             ty: None,
@@ -327,6 +337,12 @@ pub enum ModelError {
     UnknownNode(NodeId),
     #[error("unknown frame `{0}`")]
     UnknownFrame(FrameId),
+    #[error("frame `{0}` is inside itself")]
+    FrameCycle(FrameId),
+    #[error("frame `{0}` is nested more than {MAX_FRAME_DEPTH} frames deep")]
+    FrameTooDeep(FrameId),
+    #[error("frame `{child}` cannot be inside `{parent}`: a sequence frame holds no frames")]
+    FrameInSequence { child: FrameId, parent: FrameId },
     #[error("node `{child}` cannot be a child of `{parent}`: they are in different frames")]
     CrossFrameParent { child: NodeId, parent: NodeId },
     #[error("making `{parent}` the parent of `{child}` would create a cycle")]
@@ -346,6 +362,9 @@ pub enum ModelError {
     #[error("`{0}` is not an ISO 8601 date (YYYY-MM-DD or YYYY-MM-DDThh:mm)")]
     InvalidDate(String),
 }
+
+/// How deep frames may nest: a frame at this depth may not hold another.
+pub const MAX_FRAME_DEPTH: usize = 16;
 
 /// A diagram: frames, nodes, edges and named styles.
 ///
@@ -374,6 +393,16 @@ pub struct Document {
     /// CURIE prefixes, in author order.
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub prefixes: IndexMap<String, String>,
+    /// Other rhizo files, by alias: `import "model.rhizo" as=model` makes
+    /// `model:order` refer to node `order` there. Paths are relative to this
+    /// file; resolving them is up to the project loader.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub imports: IndexMap<String, String>,
+    /// What kits want typed nodes to show (badges, cards), by node id.
+    /// Filled for drawing only; never read from or written to files.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub decor: IndexMap<NodeId, Decor>,
 }
 
 impl Document {
@@ -382,6 +411,7 @@ impl Document {
         !self.kits.is_empty()
             || self.base.is_some()
             || !self.prefixes.is_empty()
+            || !self.imports.is_empty()
             || self.frames.iter().any(|f| f.ty.is_some() || !f.props.is_empty())
             || self.nodes.values().any(Node::is_typed)
             || self.edges.iter().any(Edge::is_typed)
@@ -407,9 +437,15 @@ impl Document {
         self.nodes.get_mut(id)
     }
 
+    /// Adds a frame. Its parent, if any, must already be there.
     pub fn add_frame(&mut self, frame: Frame) -> Result<(), ModelError> {
         if self.frame(&frame.id).is_some() {
             return Err(ModelError::DuplicateFrame(frame.id));
+        }
+        if let Some(p) = &frame.parent
+            && self.frame(p).is_none()
+        {
+            return Err(ModelError::UnknownFrame(p.clone()));
         }
         self.frames.push(frame);
         Ok(())
@@ -456,10 +492,10 @@ impl Document {
                 return Err(ModelError::ParentCycle { child: child.clone(), parent: p.clone() });
             }
         }
-        if let Some(old) = c.parent.clone() {
-            if let Some(o) = self.nodes.get_mut(&old) {
-                o.children.retain(|x| x != child);
-            }
+        if let Some(old) = c.parent.clone()
+            && let Some(o) = self.nodes.get_mut(&old)
+        {
+            o.children.retain(|x| x != child);
         }
         if let Some(p) = parent {
             self.nodes[p].children.push(child.clone());
@@ -478,10 +514,10 @@ impl Document {
             }
             i += 1;
         }
-        if let Some(parent) = self.nodes.get(id)?.parent.clone() {
-            if let Some(p) = self.nodes.get_mut(&parent) {
-                p.children.retain(|c| c != id);
-            }
+        if let Some(parent) = self.nodes.get(id)?.parent.clone()
+            && let Some(p) = self.nodes.get_mut(&parent)
+        {
+            p.children.retain(|c| c != id);
         }
         let removed = self.nodes.shift_remove(id);
         for d in &doomed[1..] {
@@ -503,6 +539,27 @@ impl Document {
             cur = self.nodes.get(c).and_then(|n| n.parent.as_ref());
             Some(c)
         })
+    }
+
+    /// The frames holding `id`, innermost first; `id` itself not included.
+    /// Stops at a cycle.
+    pub fn frame_ancestors<'a>(&'a self, id: &'a FrameId) -> impl Iterator<Item = &'a FrameId> + 'a {
+        let mut cur = self.frame(id).and_then(|f| f.parent.as_ref());
+        let mut guard = self.frames.len();
+        std::iter::from_fn(move || {
+            let c = cur?;
+            if guard == 0 {
+                return None;
+            }
+            guard -= 1;
+            cur = self.frame(c).and_then(|f| f.parent.as_ref());
+            Some(c)
+        })
+    }
+
+    /// True if `inner` is `outer` or nested in it, at any depth.
+    pub fn frame_within(&self, inner: &FrameId, outer: &FrameId) -> bool {
+        inner == outer || self.frame_ancestors(inner).any(|a| a == outer)
     }
 
     pub fn depth(&self, id: &NodeId) -> usize {
@@ -549,6 +606,22 @@ impl Document {
         for f in &self.frames {
             if !seen.insert(&f.id) {
                 errs.push(ModelError::DuplicateFrame(f.id.clone()));
+            }
+        }
+        for f in &self.frames {
+            let Some(p) = &f.parent else { continue };
+            match self.frame(p) {
+                None => errs.push(ModelError::UnknownFrame(p.clone())),
+                Some(pf) if pf.layout == LayoutKind::Sequence => {
+                    errs.push(ModelError::FrameInSequence { child: f.id.clone(), parent: p.clone() })
+                }
+                _ => {}
+            }
+            let depth = self.frame_ancestors(&f.id).count();
+            if self.frame_ancestors(&f.id).any(|a| a == &f.id) || depth >= self.frames.len() {
+                errs.push(ModelError::FrameCycle(f.id.clone()));
+            } else if depth > MAX_FRAME_DEPTH {
+                errs.push(ModelError::FrameTooDeep(f.id.clone()));
             }
         }
         for n in self.nodes.values() {
@@ -606,10 +679,11 @@ impl Document {
             .map(NodeId::as_str)
             .chain(self.edges.iter().filter_map(|e| e.id.as_ref().map(EdgeId::as_str)));
         for id in all_ids {
-            if let Some(prefix) = typed::curie_prefix(id) {
-                if !self.prefixes.contains_key(prefix) {
-                    errs.push(ModelError::UndeclaredPrefix { id: id.to_string(), prefix: prefix.to_string() });
-                }
+            if let Some(prefix) = typed::curie_prefix(id)
+                && !self.prefixes.contains_key(prefix)
+                && !self.imports.contains_key(prefix)
+            {
+                errs.push(ModelError::UndeclaredPrefix { id: id.to_string(), prefix: prefix.to_string() });
             }
         }
 
@@ -724,6 +798,36 @@ mod tests {
         d.set_parent(&"c".into(), Some(&"a".into())).unwrap();
         assert_eq!(d.nodes[&NodeId::from("a")].children.len(), 2);
         assert!(d.nodes[&NodeId::from("b")].children.is_empty());
+    }
+
+    #[test]
+    fn nested_frames_validate() {
+        let mut d = doc();
+        let mut inner = Frame::new("inner");
+        inner.parent = Some("main".into());
+        d.add_frame(inner).unwrap();
+        let mut orphan = Frame::new("orphan");
+        orphan.parent = Some("nope".into());
+        assert_eq!(d.add_frame(orphan), Err(ModelError::UnknownFrame("nope".into())));
+        assert!(d.validate().is_empty());
+        assert!(d.frame_within(&"inner".into(), &"main".into()));
+        assert!(!d.frame_within(&"main".into(), &"inner".into()));
+
+        let mut cyclic = d.clone();
+        cyclic.frame_mut(&"main".into()).unwrap().parent = Some("inner".into());
+        assert!(cyclic.validate().contains(&ModelError::FrameCycle("main".into())));
+
+        let mut seq = d.clone();
+        seq.frame_mut(&"main".into()).unwrap().layout = LayoutKind::Sequence;
+        assert!(seq.validate().iter().any(|e| matches!(e, ModelError::FrameInSequence { .. })));
+
+        let mut deep = d.clone();
+        for i in 0..=MAX_FRAME_DEPTH {
+            let mut f = Frame::new(format!("d{i}"));
+            f.parent = Some(if i == 0 { "inner".into() } else { FrameId(format!("d{}", i - 1)) });
+            deep.add_frame(f).unwrap();
+        }
+        assert!(deep.validate().iter().any(|e| matches!(e, ModelError::FrameTooDeep(_))));
     }
 
     #[test]

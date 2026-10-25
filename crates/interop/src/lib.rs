@@ -1,18 +1,22 @@
 //! Conversion between rhizo documents and other formats.
 //!
-//! | Format      | Import | Export | Notes                                   |
-//! |-------------|:------:|:------:|-----------------------------------------|
-//! | rhizo (KDL) |   ✓    |   ✓    | native, lossless                        |
-//! | JSON / YAML |   ✓    |   ✓    | same schema as KDL, lossless            |
-//! | Mermaid     |   ✓    |   ✓    | flowchart, mindmap; stateDiagram import |
-//! | D2          |        |   ✓    |                                         |
-//! | Graphviz    |        |   ✓    | DOT                                     |
-//! | OPML        |   ✓    |   ✓    | outline only                            |
-//! | FreeMind    |   ✓    |   ✓    | `.mm`, also read by Freeplane and XMind |
-//! | Markdown    |   ✓    |   ✓    | headings and lists (markmap style)      |
-//! | JSON Canvas |   ✓    |   ✓    | Obsidian canvas, with positions         |
-//! | draw.io     |        |   ✓    | diagrams.net, with positions            |
-//! | GraphML     |        |   ✓    | yEd, Gephi, Cytoscape, networkx         |
+//! | Format      | Import | Export | Notes                                                    |
+//! |-------------|:------:|:------:|----------------------------------------------------------|
+//! | rhizo (KDL) |   ✓    |   ✓    | native, lossless                                         |
+//! | JSON / YAML |   ✓    |   ✓    | same schema as KDL, lossless                             |
+//! | Mermaid     |   ✓    |   ✓    | flowchart, mindmap, sequenceDiagram; stateDiagram import |
+//! | D2          |        |   ✓    | sequence frames as `sequence_diagram`                    |
+//! | Graphviz    |        |   ✓    | DOT                                                      |
+//! | OPML        |   ✓    |   ✓    | outline only                                             |
+//! | FreeMind    |   ✓    |   ✓    | `.mm`, also read by Freeplane and XMind                  |
+//! | Markdown    |   ✓    |   ✓    | headings and lists (markmap style)                       |
+//! | JSON Canvas |   ✓    |   ✓    | Obsidian canvas, with positions                          |
+//! | draw.io     |        |   ✓    | diagrams.net, with positions                             |
+//! | GraphML     |        |   ✓    | yEd, Gephi, Cytoscape, networkx                          |
+//!
+//! Nested frames export as nested subgraphs (Mermaid, DOT), containers (D2,
+//! draw.io) and groups inside groups (JSON Canvas); the other formats list
+//! them flat, see [`keeps_nested_frames`].
 
 pub mod canvas;
 pub mod graphviz;
@@ -138,6 +142,16 @@ impl Format {
         )
     }
 
+    /// The rhizo syntax this format is written in: KDL, JSON or YAML.
+    pub fn syntax(self) -> Option<Syntax> {
+        match self {
+            Format::Rhizo => Some(Syntax::Kdl),
+            Format::Json => Some(Syntax::Json),
+            Format::Yaml => Some(Syntax::Yaml),
+            _ => None,
+        }
+    }
+
     /// Images are rendered by `rhizo-render`, not here.
     pub fn is_image(self) -> bool {
         matches!(self, Format::Svg | Format::Png | Format::Pdf)
@@ -154,20 +168,38 @@ pub fn keeps_typed_features(format: Format) -> bool {
     matches!(format, Format::Rhizo | Format::Json | Format::Yaml | Format::GraphMl | Format::DrawIo)
 }
 
-/// One warning per conversion (not per node) when typed data will be lost.
+/// Formats that draw frames inside frames. The outline formats and GraphML
+/// list every frame at the top level instead (no node is lost).
+pub fn keeps_nested_frames(format: Format) -> bool {
+    !matches!(format, Format::Opml | Format::FreeMind | Format::Markdown | Format::GraphMl)
+}
+
+/// One warning per conversion (not per node) when typed data or frame
+/// nesting will be lost.
 pub fn dropped_features(doc: &Document, format: Format) -> Option<String> {
-    (doc.is_typed() && !keeps_typed_features(format) && !format.is_image())
-        .then(|| format!("{} has no place for types, props, ports or provenance; they were left out", format.name()))
+    let typed = (doc.is_typed() && !keeps_typed_features(format) && !format.is_image())
+        .then(|| format!("{} has no place for types, props, ports or provenance; they were left out", format.name()));
+    let nested = (doc.frames.iter().any(|f| f.parent.is_some()) && !keeps_nested_frames(format))
+        .then(|| format!("{} cannot nest frames; nested frames are listed at the top level", format.name()));
+    match (typed, nested) {
+        (Some(a), Some(b)) => Some(format!("{a}; {b}")),
+        (a, b) => a.or(b),
+    }
 }
 
 /// Reads `src` as `format`. Warnings are returned alongside the document;
 /// any error fails the import.
 pub fn import(src: &str, format: Format) -> Result<(Document, Vec<Diagnostic>), Vec<Diagnostic>> {
+    let mut warnings = Vec::new();
+    if let Some(syntax) = format.syntax() {
+        return rhizo_lang::load(src, syntax).into_result();
+    }
     let file = match format {
-        Format::Rhizo => return rhizo_lang::load(src, Syntax::Kdl).into_result(),
-        Format::Json => return rhizo_lang::load(src, Syntax::Json).into_result(),
-        Format::Yaml => return rhizo_lang::load(src, Syntax::Yaml).into_result(),
-        Format::Mermaid => mermaid::import(src)?,
+        Format::Mermaid => {
+            let (file, w) = mermaid::import(src)?;
+            warnings = w;
+            file
+        }
         Format::Opml => outline::opml_import(src)?,
         Format::FreeMind => outline::freemind_import(src)?,
         Format::Markdown => outline::markdown_import(src)?,
@@ -176,7 +208,8 @@ pub fn import(src: &str, format: Format) -> Result<(Document, Vec<Diagnostic>), 
             return Err(vec![Diagnostic::error(format!("rhizo cannot read {} files", other.name()), None)]);
         }
     };
-    let (doc, diags) = lower(&file);
+    let (doc, mut diags) = lower(&file);
+    diags.extend(warnings);
     if diags.iter().any(Diagnostic::is_error) { Err(diags) } else { Ok((doc, diags)) }
 }
 

@@ -1,0 +1,24 @@
+# Checkout
+direction: down
+
+shape: sequence_diagram
+customer: "Customer" {
+  style.border-radius: 20
+}
+web: "Web app"
+api: "Orders API"
+pay: "Payments"
+customer -> web: "Place order"
+web -> api: "POST /orders"
+api -> pay: "Charge card"
+pay -> api: "charged" {
+  style.stroke-dash: 4
+}
+api -> api: "Save order"
+api -> web: "201 Created" {
+  style.stroke-dash: 4
+}
+web -> customer: "Confirmation" {
+  style.stroke-dash: 4
+}
+

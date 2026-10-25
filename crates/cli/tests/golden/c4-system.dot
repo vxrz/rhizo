@@ -1,0 +1,30 @@
+digraph "Online shop: context, containers, components" {
+    graph [rankdir=TB, fontname="Helvetica", nodesep=0.4, ranksep=0.5, bgcolor="#ffffff"];
+    label="Online shop: context, containers, components"; labelloc=t; fontsize=18;
+    node [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#d4d4d8", fontcolor="#18181b", fontname="Helvetica", fontsize=12, margin="0.2,0.1"];
+    edge [color="#a1a1aa", fontname="Helvetica", fontsize=10, fontcolor="#71717a"];
+    subgraph cluster_context {
+        label="System context"; style="rounded,filled"; fillcolor="#fafafa"; color="#e4e4e7";
+        customer [label="Customer", style="rounded,filled", shape=box, peripheries=1, fillcolor="#1d4ed8", color="#1d4ed8", tooltip="Browses the catalog, orders and pays"];
+        payments [label="Payment provider", style="rounded,filled"];
+        email [label="Email service", style="rounded,filled"];
+        subgraph cluster_shop {
+            label="Online shop"; style="rounded,filled"; fillcolor="#ffffff"; color="#e4e4e7";
+            web [label="Web shop", style="rounded,filled", tooltip="Single-page app in the browser"];
+            orders_db [label="Orders DB", shape=hexagon, style=filled];
+            subgraph cluster_api {
+                label="API"; style="rounded,filled"; fillcolor="#fafafa"; color="#e4e4e7";
+                orders_ctl [label="Orders controller", style="rounded,filled"];
+                checkout [label="Checkout service", style="rounded,filled"];
+                repo [label="Order repository", style="rounded,filled"];
+            }
+        }
+    }
+    orders_ctl -> checkout;
+    checkout -> repo;
+    web -> orders_ctl [label="JSON over HTTPS"];
+    repo -> orders_db [label="SQL"];
+    customer -> web [label="shops with"];
+    checkout -> payments [label="charges"];
+    checkout -> email [label="sends receipts"];
+}

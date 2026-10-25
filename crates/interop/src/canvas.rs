@@ -113,7 +113,7 @@ pub fn canvas_export(doc: &Document, d: &Diagram) -> String {
             ..Default::default()
         });
     }
-    for (i, e) in d.edges.iter().enumerate() {
+    for (i, e) in connections(d).enumerate() {
         let (Some(ra), Some(rb)) = (rects.get(e.from.as_str()), rects.get(e.to.as_str())) else { continue };
         c.edges.push(CanvasEdge {
             id: format!("edge-{}", i + 1),
@@ -225,19 +225,18 @@ fn canvas_color(c: &str) -> Option<Color> {
     })
 }
 
-/// The document edge behind each drawn link, matched per (from, to) pair in
-/// document order. Every layout pass keeps that order within a pair.
+/// Drawn edges that connect nodes: everything but sequence lifelines.
+fn connections(d: &Diagram) -> impl Iterator<Item = &rhizo_layout::EdgeBox> {
+    d.edges.iter().filter(|e| e.kind != EdgeKind::Lifeline)
+}
+
+/// The document edge behind each of [`connections`].
 fn edge_sources<'a>(doc: &'a Document, d: &Diagram) -> Vec<Option<&'a Edge>> {
-    let mut queues: HashMap<(&str, &str), std::collections::VecDeque<&Edge>> = HashMap::new();
-    for e in &doc.edges {
-        queues.entry((e.from.as_str(), e.to.as_str())).or_default().push_back(e);
-    }
-    d.edges
-        .iter()
-        .map(|eb| match eb.kind {
-            EdgeKind::Link => queues.get_mut(&(eb.from.as_str(), eb.to.as_str())).and_then(|q| q.pop_front()),
-            EdgeKind::Branch => None,
-        })
+    rhizo_layout::edge_sources(doc, d)
+        .into_iter()
+        .zip(&d.edges)
+        .filter(|(_, e)| e.kind != EdgeKind::Lifeline)
+        .map(|(k, _)| k.map(|k| &doc.edges[k]))
         .collect()
 }
 
@@ -274,22 +273,28 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
     s.push_str("      <root>\n        <mxCell id=\"0\"/>\n        <mxCell id=\"1\" parent=\"0\"/>\n");
     let html = |t: &str| xml(&t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('\n', "<br>"));
     let mut frame_rect: HashMap<&str, Rect> = HashMap::new();
+    // Parents come first, so a nested frame's container is already known.
     for f in d.frames.iter().filter(|f| f.visible) {
+        let (parent, ox, oy) = match f.parent.as_ref().and_then(|p| frame_rect.get(p.as_str()).map(|r| (p, r))) {
+            Some((p, r)) => (format!("f-{p}"), r.x, r.y),
+            None => ("1".to_string(), 0.0, 0.0),
+        };
         frame_rect.insert(f.id.as_str(), f.rect);
         let _ = writeln!(
             s,
-            "        <mxCell id=\"f-{}\" value=\"{}\" style=\"rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor={};strokeColor={};fontColor={};\" vertex=\"1\" parent=\"1\">",
+            "        <mxCell id=\"f-{}\" value=\"{}\" style=\"rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor={};strokeColor={};fontColor={};\" vertex=\"1\" parent=\"{}\">",
             xml(f.id.as_str()),
             html(f.label.as_deref().unwrap_or("")),
             f.fill.to_hex_rgb(),
             f.stroke.to_hex_rgb(),
-            f.label_color.to_hex_rgb()
+            f.label_color.to_hex_rgb(),
+            xml(&parent)
         );
         let _ = writeln!(
             s,
             "          <mxGeometry x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" as=\"geometry\"/>",
-            f.rect.x.round(),
-            f.rect.y.round(),
+            (f.rect.x - ox).round(),
+            (f.rect.y - oy).round(),
             f.rect.width.round(),
             f.rect.height.round()
         );
@@ -357,7 +362,7 @@ pub fn drawio_export(doc: &Document, d: &Diagram) -> String {
         }
     }
     let sources = edge_sources(doc, d);
-    for (i, e) in d.edges.iter().enumerate() {
+    for (i, e) in connections(d).enumerate() {
         let start = if e.arrow.at_start() { "startArrow=classic;" } else { "startArrow=none;" };
         let end = if e.arrow.at_end() { "endArrow=classic;" } else { "endArrow=none;" };
         let dashed = match e.line {
@@ -474,7 +479,7 @@ pub fn graphml_export(doc: &Document, d: &Diagram) -> String {
         s.push_str("    </node>\n");
     }
     let sources = edge_sources(doc, d);
-    for (i, e) in d.edges.iter().enumerate() {
+    for (i, e) in connections(d).enumerate() {
         let _ = writeln!(
             s,
             "    <edge id=\"e{}\" source=\"{}\" target=\"{}\">",

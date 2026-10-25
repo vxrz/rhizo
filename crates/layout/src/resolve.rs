@@ -55,18 +55,20 @@ pub fn node(doc: &Document, theme: &Theme, n: &Node, cx: &NodeCtx) -> NodeLook {
         if cx.layout == LayoutKind::Mindmap {
             look.shape = Shape::Pill;
         }
-    } else if cx.layout == LayoutKind::Mindmap {
-        if let Some(b) = cx.branch {
-            let c = theme.branch(b);
-            if cx.depth == 1 {
-                look.fill = theme.tint(c, 0.84);
-                look.stroke = c;
-                look.stroke_width = 1.5;
-                look.font_weight = 500;
-            } else {
-                look.fill = theme.tint(c, 0.94);
-                look.stroke = theme.tint(c, 0.55);
-            }
+    } else if cx.layout == LayoutKind::Sequence {
+        look.font_weight = 600;
+    } else if cx.layout == LayoutKind::Mindmap
+        && let Some(b) = cx.branch
+    {
+        let c = theme.branch(b);
+        if cx.depth == 1 {
+            look.fill = theme.tint(c, 0.84);
+            look.stroke = c;
+            look.stroke_width = 1.5;
+            look.font_weight = 500;
+        } else {
+            look.fill = theme.tint(c, 0.94);
+            look.stroke = theme.tint(c, 0.55);
         }
     }
 
@@ -124,6 +126,8 @@ pub enum EdgeRole {
     Nesting,
     /// An explicit edge.
     Link { secondary: bool },
+    /// A message in a sequence diagram: the content, so it reads stronger.
+    Message,
 }
 
 pub fn edge(doc: &Document, theme: &Theme, e: Option<&Edge>, role: EdgeRole) -> EdgeLook {
@@ -139,11 +143,20 @@ pub fn edge(doc: &Document, theme: &Theme, e: Option<&Edge>, role: EdgeRole) -> 
             look.color = theme.branch(b);
             look.width = (2.6 - 0.45 * depth.saturating_sub(1) as f32).max(1.25);
         }
-        EdgeRole::Branch { .. } | EdgeRole::Nesting => {}
+        // Outside mindmaps, nesting is structure, not a connection: the
+        // outline color, thinner, and (in the layouts) no arrowhead.
+        EdgeRole::Branch { .. } | EdgeRole::Nesting => {
+            look.color = theme.node_stroke.mix(theme.edge, 0.35);
+            look.width = theme.stroke_width;
+        }
         EdgeRole::Link { secondary } => {
             if secondary {
                 look.line = LineStyle::Dashed;
             }
+        }
+        EdgeRole::Message => {
+            look.color = theme.muted_text;
+            look.label_color = theme.text;
         }
     }
     if let Some(e) = e {

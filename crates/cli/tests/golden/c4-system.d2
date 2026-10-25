@@ -1,0 +1,52 @@
+# Online shop: context, containers, components
+direction: down
+
+classes: {
+  person: {
+    style.fill: "#1d4ed8"
+    style.stroke: "#1d4ed8"
+  }
+  external: {
+    style.stroke-dash: 4
+  }
+  store: {
+  }
+}
+
+context: "System context" {
+  customer: "Customer" {
+    style.border-radius: 20
+    class: person
+    tooltip: "Browses the catalog, orders and pays"
+  }
+  payments: "Payment provider" {
+    class: external
+  }
+  email: "Email service" {
+    class: external
+  }
+
+  shop: "Online shop" {
+    web: "Web shop" {
+      tooltip: "Single-page app in the browser"
+    }
+    orders_db: "Orders DB" {
+      shape: hexagon
+      class: store
+    }
+
+    api: "API" {
+      orders_ctl: "Orders controller"
+      checkout: "Checkout service"
+      repo: "Order repository"
+    }
+  }
+}
+
+context.shop.api.orders_ctl -> context.shop.api.checkout
+context.shop.api.checkout -> context.shop.api.repo
+context.shop.web -> context.shop.api.orders_ctl: "JSON over HTTPS"
+context.shop.api.repo -> context.shop.orders_db: "SQL"
+context.customer -> context.shop.web: "shops with"
+context.shop.api.checkout -> context.payments: "charges"
+context.shop.api.checkout -> context.email: "sends receipts"

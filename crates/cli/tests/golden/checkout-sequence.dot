@@ -1,0 +1,17 @@
+digraph "Checkout" {
+    graph [rankdir=TB, fontname="Helvetica", nodesep=0.4, ranksep=0.5, bgcolor="#ffffff"];
+    label="Checkout"; labelloc=t; fontsize=18;
+    node [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#d4d4d8", fontcolor="#18181b", fontname="Helvetica", fontsize=12, margin="0.2,0.1"];
+    edge [color="#a1a1aa", fontname="Helvetica", fontsize=10, fontcolor="#71717a"];
+    customer [label="Customer", style="rounded,filled", shape=box, peripheries=1];
+    web [label="Web app", style="rounded,filled"];
+    api [label="Orders API", style="rounded,filled"];
+    pay [label="Payments", style="rounded,filled"];
+    customer -> web [label="Place order"];
+    web -> api [label="POST /orders"];
+    api -> pay [label="Charge card"];
+    pay -> api [label="charged", style=dashed];
+    api -> api [label="Save order"];
+    api -> web [label="201 Created", style=dashed];
+    web -> customer [label="Confirmation", style=dashed];
+}

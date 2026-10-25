@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="note" for="node" attr.name="note" attr.type="string"/>
+  <key id="link" for="node" attr.name="link" attr.type="string"/>
+  <key id="frame" for="node" attr.name="frame" attr.type="string"/>
+  <key id="x" for="node" attr.name="x" attr.type="double"/>
+  <key id="y" for="node" attr.name="y" attr.type="double"/>
+  <key id="width" for="node" attr.name="width" attr.type="double"/>
+  <key id="height" for="node" attr.name="height" attr.type="double"/>
+  <key id="fill" for="node" attr.name="fill" attr.type="string"/>
+  <key id="shape" for="node" attr.name="shape" attr.type="string"/>
+  <key id="elabel" for="edge" attr.name="label" attr.type="string"/>
+  <key id="kind" for="edge" attr.name="kind" attr.type="string"/>
+  <key id="color" for="edge" attr.name="color" attr.type="string"/>
+  <graph id="Online shop: context, containers, components" edgedefault="directed">
+    <node id="customer">
+      <data key="label">Customer</data>
+      <data key="note">Browses the catalog, orders and pays</data>
+      <data key="frame">context</data>
+      <data key="x">298</data>
+      <data key="y">55</data>
+      <data key="width">101</data>
+      <data key="height">37</data>
+      <data key="fill">#1d4ed8</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="payments">
+      <data key="label">Payment provider</data>
+      <data key="frame">context</data>
+      <data key="x">201</data>
+      <data key="y">577</data>
+      <data key="width">140</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="email">
+      <data key="label">Email service</data>
+      <data key="frame">context</data>
+      <data key="x">369</data>
+      <data key="y">577</data>
+      <data key="width">115</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="web">
+      <data key="label">Web shop</data>
+      <data key="note">Single-page app in the browser</data>
+      <data key="frame">shop</data>
+      <data key="x">303</data>
+      <data key="y">199</data>
+      <data key="width">91</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="orders-db">
+      <data key="label">Orders DB</data>
+      <data key="frame">shop</data>
+      <data key="x">290</data>
+      <data key="y">460</data>
+      <data key="width">118</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">hexagon</data>
+    </node>
+    <node id="orders-ctl">
+      <data key="label">Orders controller</data>
+      <data key="frame">api</data>
+      <data key="x">84</data>
+      <data key="y">343</data>
+      <data key="width">133</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="checkout">
+      <data key="label">Checkout service</data>
+      <data key="frame">api</data>
+      <data key="x">281</data>
+      <data key="y">343</data>
+      <data key="width">138</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="repo">
+      <data key="label">Order repository</data>
+      <data key="frame">api</data>
+      <data key="x">483</data>
+      <data key="y">343</data>
+      <data key="width">130</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <edge id="e1" source="orders-ctl" target="checkout">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e2" source="checkout" target="repo">
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e3" source="web" target="orders-ctl">
+      <data key="elabel">JSON over HTTPS</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e4" source="repo" target="orders-db">
+      <data key="elabel">SQL</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e5" source="customer" target="web">
+      <data key="elabel">shops with</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e6" source="checkout" target="payments">
+      <data key="elabel">charges</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+    <edge id="e7" source="checkout" target="email">
+      <data key="elabel">sends receipts</data>
+      <data key="kind">link</data>
+      <data key="color">#a1a1aa</data>
+    </edge>
+  </graph>
+</graphml>

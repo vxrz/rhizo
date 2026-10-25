@@ -1,0 +1,15 @@
+---
+title: Checkout
+---
+sequenceDiagram
+    actor customer as Customer
+    participant web as Web app
+    participant api as Orders API
+    participant pay as Payments
+    customer->>web: Place order
+    web->>api: POST /orders
+    api->>pay: Charge card
+    pay-->>api: charged
+    api->>api: Save order
+    api-->>web: 201 Created
+    web-->>customer: Confirmation

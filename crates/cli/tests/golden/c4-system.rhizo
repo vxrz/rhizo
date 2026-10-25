@@ -1,0 +1,33 @@
+rhizo version=1
+title "Online shop: context, containers, components"
+
+style "person" shape=pill fill="#1d4ed8" stroke="#1d4ed8"
+style "external" line=dashed
+style "store" shape=hexagon
+
+frame "System context" id=context layout=layered direction=down {
+    node "Customer" class="person" note="Browses the catalog, orders and pays"
+    node "Payment provider" id=payments class="external"
+    node "Email service" id=email class="external"
+
+    frame "Online shop" id=shop layout=layered direction=down {
+        node "Web shop" id=web note="Single-page app in the browser"
+        node "Orders DB" class="store"
+
+        frame "API" layout=layered direction=right {
+            node "Orders controller" id=orders-ctl
+            node "Checkout service" id=checkout
+            node "Order repository" id=repo
+
+            edge orders-ctl checkout
+            edge checkout repo
+        }
+
+        edge web orders-ctl label="JSON over HTTPS"
+        edge repo orders-db label="SQL"
+    }
+
+    edge customer web label="shops with"
+    edge checkout payments label="charges"
+    edge checkout email label="sends receipts"
+}

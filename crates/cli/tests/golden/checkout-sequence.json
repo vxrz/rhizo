@@ -1,0 +1,62 @@
+{
+  "title": "Checkout",
+  "layout": "sequence",
+  "nodes": [
+    {
+      "label": "Customer",
+      "shape": "pill"
+    },
+    {
+      "label": "Web app",
+      "id": "web"
+    },
+    {
+      "label": "Orders API",
+      "id": "api"
+    },
+    {
+      "label": "Payments",
+      "id": "pay"
+    }
+  ],
+  "edges": [
+    {
+      "from": "customer",
+      "to": "web",
+      "label": "Place order"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "label": "POST /orders"
+    },
+    {
+      "from": "api",
+      "to": "pay",
+      "label": "Charge card"
+    },
+    {
+      "from": "pay",
+      "to": "api",
+      "label": "charged",
+      "line": "dashed"
+    },
+    {
+      "from": "api",
+      "to": "api",
+      "label": "Save order"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "label": "201 Created",
+      "line": "dashed"
+    },
+    {
+      "from": "web",
+      "to": "customer",
+      "label": "Confirmation",
+      "line": "dashed"
+    }
+  ]
+}

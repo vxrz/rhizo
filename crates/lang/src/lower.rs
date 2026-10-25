@@ -32,6 +32,19 @@ pub struct Lowered {
 }
 
 pub fn lower_with_sources(file: &File) -> Lowered {
+    // JSON, YAML and the outline importers build ASTs without a depth limit;
+    // lowering recurses, so refuse what could overflow the stack.
+    let deepest =
+        file.nodes.iter().chain(file.all_frames().into_iter().flat_map(|f| &f.nodes)).map(depth_of).max().unwrap_or(0);
+    if deepest > crate::MAX_DEPTH {
+        let msg = format!("nested {deepest} levels deep; rhizo reads at most {}", crate::MAX_DEPTH);
+        return Lowered {
+            document: Document::default(),
+            diagnostics: vec![Diagnostic::error(msg, None)],
+            node_spans: HashMap::new(),
+            edge_spans: Vec::new(),
+        };
+    }
     let mut cx = Lower::default();
     cx.run(file);
     let mut seen = HashSet::new();
@@ -54,18 +67,19 @@ struct Lower {
 impl Lower {
     fn run(&mut self, file: &File) {
         self.doc.title = file.title.clone();
-        if let Some(t) = &file.theme {
-            if Theme::by_name(t).is_none() {
-                let mut d = Diagnostic::warning(format!("unknown theme `{t}`, using `light`"), None);
-                d.help = Some(format!("available: {}", Theme::NAMES.join(", ")));
-                self.diags.push(d);
-            }
+        if let Some(t) = &file.theme
+            && Theme::by_name(t).is_none()
+        {
+            let mut d = Diagnostic::warning(format!("unknown theme `{t}`, using `light`"), None);
+            d.help = Some(format!("available: {}", Theme::NAMES.join(", ")));
+            self.diags.push(d);
         }
         self.doc.theme = file.theme.clone();
         self.doc.styles = file.styles.clone();
         self.doc.kits = file.kits.clone();
         self.doc.base = file.base.clone();
         self.doc.prefixes = file.prefixes.clone();
+        self.doc.imports = file.imports.clone();
 
         fn reserve(nodes: &[NodeDef], out: &mut Vec<(String, Span)>) {
             for n in nodes {
@@ -77,11 +91,22 @@ impl Lower {
         }
         let mut explicit = Vec::new();
         reserve(&file.nodes, &mut explicit);
-        for f in &file.frames {
+        for f in file.all_frames() {
             reserve(&f.nodes, &mut explicit);
         }
+        // Ids end up in file names, comments and code; a line break in one
+        // could smuggle lines into generated files.
+        let frame_ids = file.all_frames().into_iter().filter_map(|f| f.id.clone().map(|id| (id, f.span)));
+        for (id, span) in explicit.iter().cloned().chain(frame_ids).collect::<Vec<_>>().iter() {
+            if id.chars().any(char::is_control) {
+                self.diags.push(
+                    Diagnostic::error("an id cannot contain line breaks, tabs or other control characters", *span)
+                        .with_help("use letters, digits, `-`, `_`, `.` and `:`"),
+                );
+            }
+        }
         // Edge ids share the namespace, so derived node ids must avoid them too.
-        let edge_ids = file.edges.iter().chain(file.frames.iter().flat_map(|f| &f.edges));
+        let edge_ids = file.edges.iter().chain(file.all_frames().into_iter().flat_map(|f| &f.edges));
         explicit.extend(edge_ids.filter_map(|e| e.id.clone().map(|id| (id, e.span))));
         for (id, span) in explicit {
             if !self.reserved.insert(id.clone()) {
@@ -91,15 +116,31 @@ impl Lower {
 
         let mut frame_ids = HashSet::new();
         let has_implicit = !file.nodes.is_empty() || file.frames.is_empty();
-        let mut frames: Vec<(FrameId, &FrameDef)> = Vec::new();
-        for (i, f) in file.frames.iter().enumerate() {
+        // Every frame with its parent, parents first.
+        let mut frames: Vec<(FrameId, Option<FrameId>, &FrameDef)> = Vec::new();
+        let mut stack: Vec<(&FrameDef, Option<FrameId>, usize)> =
+            file.frames.iter().rev().map(|f| (f, None, 0)).collect();
+        while let Some((f, parent, depth)) = stack.pop() {
+            let i = frames.len();
             let base = f.id.clone().or_else(|| f.label.as_deref().map(slugify)).unwrap_or(format!("frame-{}", i + 1));
             let id = unique(&base, |c| frame_ids.contains(c) || (has_implicit && c == IMPLICIT_FRAME));
             if f.id.as_deref().is_some_and(|given| given != id) {
                 self.diags.push(Diagnostic::error(format!("frame id `{base}` is used more than once"), f.span));
             }
             frame_ids.insert(id.clone());
-            frames.push((FrameId(id), f));
+            let fid = FrameId(id);
+            if depth == rhizo_core::MAX_FRAME_DEPTH && !f.frames.is_empty() {
+                let msg = format!("frames nest at most {} deep", rhizo_core::MAX_FRAME_DEPTH);
+                self.diags.push(Diagnostic::error(msg, f.frames[0].span));
+            } else if f.layout == Some(LayoutKind::Sequence) && !f.frames.is_empty() {
+                self.diags.push(
+                    Diagnostic::error("a sequence frame cannot hold frames", f.frames[0].span)
+                        .with_help("move the frame out, next to the sequence"),
+                );
+            } else {
+                stack.extend(f.frames.iter().rev().map(|c| (c, Some(fid.clone()), depth + 1)));
+            }
+            frames.push((fid, parent, f));
         }
 
         if has_implicit {
@@ -109,6 +150,7 @@ impl Lower {
             frame.direction = file.direction;
             self.doc.frames.push(frame);
             let fid = FrameId::from(IMPLICIT_FRAME);
+            self.nesting_in_sequence(file.layout, &file.nodes);
             for n in &file.nodes {
                 self.node(n, &fid, None);
             }
@@ -119,7 +161,7 @@ impl Lower {
             ));
         }
 
-        for (fid, f) in &frames {
+        for (fid, parent, f) in &frames {
             let frame = Frame {
                 id: fid.clone(),
                 label: f.label.clone(),
@@ -127,18 +169,35 @@ impl Lower {
                 direction: f.direction,
                 at: point(f.x, f.y),
                 columns: f.columns,
+                parent: parent.clone(),
                 style: f.style.clone(),
                 implicit: false,
                 ty: f.ty.clone().map(TypeName),
                 props: f.props.clone(),
             };
             self.doc.frames.push(frame);
+            self.nesting_in_sequence(f.layout, &f.nodes);
             for n in &f.nodes {
                 self.node(n, fid, None);
             }
         }
 
-        for (fid, f) in &frames {
+        // Inner frames' edges first (children before parents, siblings in
+        // order), so a name first used inside a nested frame lives there.
+        let mut post: Vec<usize> = Vec::new();
+        let mut open: Vec<usize> = Vec::new();
+        for (i, (_, parent, _)) in frames.iter().enumerate() {
+            while let Some(&top) = open.last() {
+                if parent.as_ref() == Some(&frames[top].0) {
+                    break;
+                }
+                post.extend(open.pop());
+            }
+            open.push(i);
+        }
+        post.extend(open.into_iter().rev());
+        for i in post {
+            let (fid, _, f) = &frames[i];
             for e in &f.edges {
                 self.edge(e, Some(fid));
             }
@@ -156,7 +215,7 @@ impl Lower {
             let span = first_typed_span(file);
             self.diags.push(
                 Diagnostic::error(
-                    "this document uses version 2 features (type, props, ports, kits, prefixes, provenance)",
+                    "this document uses version 2 features (type, props, ports, kits, prefixes, imports, provenance)",
                     span,
                 )
                 .with_help("add `rhizo version=2` at the top (JSON/YAML: `\"rhizo\": 2`)"),
@@ -164,6 +223,18 @@ impl Lower {
         }
         for err in self.doc.validate() {
             self.diags.push(Diagnostic::error(err.to_string(), None));
+        }
+    }
+
+    fn nesting_in_sequence(&mut self, layout: Option<LayoutKind>, nodes: &[NodeDef]) {
+        if layout != Some(LayoutKind::Sequence) {
+            return;
+        }
+        if let Some(n) = nodes.iter().find(|n| !n.children.is_empty()) {
+            self.diags.push(Diagnostic::warning(
+                "nesting has no meaning in a sequence; nested nodes are drawn as more participants",
+                n.span,
+            ));
         }
     }
 
@@ -238,8 +309,13 @@ impl Lower {
         if self.doc.nodes.contains_key(&slug) {
             return Ok(slug);
         }
-        let candidates: Vec<&str> =
-            self.doc.nodes.keys().map(|k| k.as_str()).chain(self.by_label.keys().map(String::as_str)).collect();
+        if self.declared_curie(r) {
+            return Err(false); // a reference into another namespace: new here, no warning
+        }
+        // Labels sorted: `by_label` is a HashMap, and ties must not depend on its order.
+        let mut labels: Vec<&str> = self.by_label.keys().map(String::as_str).collect();
+        labels.sort_unstable();
+        let candidates: Vec<&str> = self.doc.nodes.keys().map(|k| k.as_str()).chain(labels).collect();
         if let Some(close) = suggest_name(r, candidates) {
             let help = format!("did you mean `{close}`? If not, declare it with `node` to silence this");
             self.diags
@@ -261,11 +337,20 @@ impl Lower {
                     .or_else(|| other.and_then(|o| self.doc.node(o)).map(|n| n.frame.clone()))
                     .unwrap_or_else(|| self.implicit_frame());
                 // No span: the node has no statement of its own in the source.
-                let def = NodeDef::new(r);
+                let mut def = NodeDef::new(r);
+                if self.declared_curie(r) {
+                    def.id = Some(r.to_string()); // `model:order` stays a reference, not a slug
+                }
                 self.node(&def, &frame, None);
                 self.resolve(r, span).ok()
             }
         }
+    }
+
+    /// `prefix:local` where the prefix is declared (`prefix` or `import`).
+    fn declared_curie(&self, r: &str) -> bool {
+        rhizo_core::typed::curie_prefix(r)
+            .is_some_and(|p| self.doc.prefixes.contains_key(p) || self.doc.imports.contains_key(p))
     }
 
     fn implicit_frame(&mut self) -> FrameId {
@@ -324,7 +409,7 @@ fn first_typed_span(file: &File) -> Span {
     fn in_nodes(nodes: &[NodeDef]) -> Option<Span> {
         nodes.iter().find_map(|n| if n.is_typed() { Some(n.span) } else { in_nodes(&n.children) })
     }
-    let frames = file.frames.iter();
+    let frames = file.all_frames().into_iter();
     in_nodes(&file.nodes)
         .or_else(|| {
             frames
@@ -349,6 +434,20 @@ fn unique(base: &str, taken: impl Fn(&str) -> bool) -> String {
     (2..).map(|i| format!("{base}-{i}")).find(|c| !taken(c)).unwrap()
 }
 
+/// How deep `n`'s children go, without recursion.
+fn depth_of(n: &NodeDef) -> usize {
+    let mut stack = vec![(n, 1usize)];
+    let mut max = 0;
+    while let Some((n, d)) = stack.pop() {
+        max = max.max(d);
+        if d > crate::MAX_DEPTH {
+            break;
+        }
+        stack.extend(n.children.iter().map(|c| (c, d + 1)));
+    }
+    max
+}
+
 /// The inverse of [`lower`]: nests children, drops ids that would be derived
 /// anyway, and puts each edge in the frame that holds both ends.
 pub fn raise(doc: &Document) -> File {
@@ -359,18 +458,39 @@ pub fn raise(doc: &Document) -> File {
         kits: doc.kits.clone(),
         base: doc.base.clone(),
         prefixes: doc.prefixes.clone(),
+        imports: doc.imports.clone(),
         styles: doc.styles.clone(),
         ..Default::default()
     };
     let node_def = |id: &NodeId| -> NodeDef { raise_node(doc, id) };
-    for frame in &doc.frames {
-        let roots: Vec<NodeDef> = doc.roots(&frame.id).map(|n| node_def(&n.id)).collect();
+    // A bare reference into an import (`model:order`, only used by edges)
+    // needs no statement: the edge brings it back.
+    let bare_reference = |n: &rhizo_core::Node| {
+        rhizo_core::typed::curie_prefix(n.id.as_str()).is_some_and(|p| doc.imports.contains_key(p))
+            && n.label == n.id.as_str()
+            && n.children.is_empty()
+            && n.parent.is_none()
+            && n.style.is_empty()
+            && n.class.is_empty()
+            && !n.is_typed()
+            && n.note.is_none()
+            && n.link.is_none()
+            && n.tags.is_empty()
+            && n.at.is_none()
+            && doc.edges.iter().any(|e| e.from == n.id || e.to == n.id)
+    };
+    // Explicit frames by their index in `doc.frames`; nested ones move into
+    // their parent at the end.
+    let mut defs: Vec<Option<FrameDef>> = vec![None; doc.frames.len()];
+    for (i, frame) in doc.frames.iter().enumerate() {
+        let roots: Vec<NodeDef> =
+            doc.roots(&frame.id).filter(|n| !bare_reference(n)).map(|n| node_def(&n.id)).collect();
         if frame.implicit {
             file.layout = Some(frame.layout).filter(|l| *l != LayoutKind::Auto);
             file.direction = frame.direction;
             file.nodes = roots;
         } else {
-            file.frames.push(FrameDef {
+            defs[i] = Some(FrameDef {
                 id: Some(frame.id.0.clone())
                     .filter(|id| Some(id.as_str()) != frame.label.as_deref().map(slugify).as_deref()),
                 label: frame.label.clone(),
@@ -384,11 +504,13 @@ pub fn raise(doc: &Document) -> File {
                 style: frame.style.clone(),
                 nodes: roots,
                 edges: Vec::new(),
+                frames: Vec::new(),
                 extra: Default::default(),
                 span: None,
             });
         }
     }
+    let index_of = |id: &FrameId| doc.frames.iter().position(|f| &f.id == id);
     for e in &doc.edges {
         let def = EdgeDef {
             from: e.from.0.clone(),
@@ -407,25 +529,27 @@ pub fn raise(doc: &Document) -> File {
             extra: Default::default(),
             span: None,
         };
+        // The innermost frame holding both ends.
         let frame_of = |id: &NodeId| doc.node(id).map(|n| &n.frame);
-        let same = frame_of(&e.from).filter(|f| Some(*f) == frame_of(&e.to));
-        let target = same
-            .and_then(|f| doc.frame(f))
-            .filter(|f| !f.implicit)
-            .and_then(|f| file.frames.iter_mut().find(|fd| fd.label == f.label && frame_matches(fd, f)));
-        match target {
+        let common = frame_of(&e.from)
+            .zip(frame_of(&e.to))
+            .and_then(|(a, b)| std::iter::once(a).chain(doc.frame_ancestors(a)).find(|f| doc.frame_within(b, f)));
+        match common.and_then(index_of).and_then(|i| defs[i].as_mut()) {
             Some(fd) => fd.edges.push(def),
             None => file.edges.push(def),
         }
     }
-    file
-}
-
-fn frame_matches(def: &FrameDef, frame: &Frame) -> bool {
-    match &def.id {
-        Some(id) => *id == frame.id.0,
-        None => def.label.as_deref().map(slugify).as_deref() == Some(frame.id.as_str()),
+    // Children come after their parents, so the last frame has no children left to collect.
+    for i in (0..doc.frames.len()).rev() {
+        let parent = doc.frames[i].parent.as_ref().and_then(index_of).filter(|&p| p < i && defs[p].is_some());
+        match (parent, defs[i].take()) {
+            (Some(p), Some(fd)) => defs[p].as_mut().unwrap().frames.insert(0, fd),
+            (None, fd) => defs[i] = fd,
+            (Some(_), None) => {}
+        }
     }
+    file.frames = defs.into_iter().flatten().collect();
+    file
 }
 
 fn raise_node(doc: &Document, id: &NodeId) -> NodeDef {

@@ -93,6 +93,8 @@ frame "Flow" layout=layered {
     node "Round" shape=circle
     edge start decide hex label="go"
     edge decide round arrow=both line=dotted
+    frame "Inner" { node "Deep" }
+    edge round deep
 }
 "##;
 
@@ -116,6 +118,8 @@ frame "Flow" layout=layered {
         assert!(s.contains(r#"id="node-decide""#));
         assert!(s.contains("rz-shape-diamond"));
         assert!(s.contains("marker-start="));
+        assert!(s.contains(r#"<g class="rz-frame" id="frame-flow">"#));
+        assert!(s.contains(r#"<g class="rz-frame rz-frame-nested rz-depth-1" id="frame-inner">"#));
         assert!(s.contains("<a href=\"https://example.com\""));
         // usvg is a strict parser: if it accepts the output, so will browsers.
         tree(&s, &fonts).unwrap();

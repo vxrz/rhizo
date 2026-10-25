@@ -1,5 +1,5 @@
-//! Mermaid: flowchart/graph, mindmap and stateDiagram import; flowchart and
-//! mindmap export.
+//! Mermaid: flowchart/graph, mindmap, sequenceDiagram and stateDiagram
+//! import; flowchart, mindmap and sequenceDiagram export.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
@@ -8,7 +8,7 @@ use rhizo_core::{Arrow, Color, Direction, Document, LayoutKind, LineStyle, Shape
 use rhizo_lang::Diagnostic;
 use rhizo_lang::ast::{EdgeDef, File, FrameDef, NodeDef};
 
-use crate::util::{Ids, effective, line_span};
+use crate::util::{Ids, Visit, effective, frame_tree, line_span};
 
 // ---------------------------------------------------------------- export --
 
@@ -21,8 +21,11 @@ pub fn export(doc: &Document) -> String {
     if let Some(t) = &doc.title {
         let _ = write!(out, "---\ntitle: {}\n---\n", yaml_scalar(t));
     }
+    let single_sequence = doc.frames.len() == 1 && effective(doc, &doc.frames[0]) == LayoutKind::Sequence;
     if single_tree {
         mindmap_out(doc, &mut out)
+    } else if single_sequence {
+        sequence_out(doc, &mut out)
     } else {
         flowchart_out(doc, &mut out)
     }
@@ -67,6 +70,41 @@ fn mindmap_out(doc: &Document, out: &mut String) {
     }
 }
 
+/// `participant` boxes, `actor` for pills (and back on import).
+fn sequence_out(doc: &Document, out: &mut String) {
+    out.push_str("sequenceDiagram\n");
+    let mut ids = Ids::mermaid();
+    let frame = &doc.frames[0].id;
+    for n in doc.nodes_in(frame) {
+        let shape = n.style.shape.or_else(|| n.class.iter().rev().find_map(|c| doc.styles.get(c)?.shape));
+        let kind = if shape == Some(Shape::Pill) { "actor" } else { "participant" };
+        let id = ids.get(n.id.as_str());
+        if id == n.label {
+            let _ = writeln!(out, "    {kind} {id}");
+        } else {
+            let _ = writeln!(out, "    {kind} {id} as {}", message_text(&n.label));
+        }
+    }
+    for e in doc.edges_in(frame) {
+        let dashed = e.line() != LineStyle::Solid || style_line(doc, &e.class) != LineStyle::Solid;
+        let dash = if dashed { "--" } else { "-" };
+        // Mermaid has no arrow at the start only: the message is flipped.
+        let (from, to) = if e.arrow == Arrow::Start { (&e.to, &e.from) } else { (&e.from, &e.to) };
+        let op = match e.arrow {
+            Arrow::End | Arrow::Start => format!("{dash}>>"),
+            Arrow::Both => format!("<<{dash}>>"),
+            Arrow::None => format!("{dash}>"),
+        };
+        let text = e.label.as_deref().map(message_text).unwrap_or_default();
+        let _ = writeln!(out, "    {}{op}{}: {text}", ids.get(from.as_str()), ids.get(to.as_str()));
+    }
+}
+
+/// Text after `:` or `as`, which runs to the end of the line.
+fn message_text(s: &str) -> String {
+    s.replace('#', "#35;").replace(';', "#59;").replace('\n', "<br>")
+}
+
 fn needs_quotes(s: &str) -> bool {
     s.is_empty() || s.contains(['(', ')', '[', ']', '{', '}', '\n', '"', ':']) || s.trim() != s
 }
@@ -108,22 +146,30 @@ fn flowchart_out(doc: &Document, out: &mut String) {
         }
     };
     let single = doc.frames.len() == 1 && doc.frames[0].label.is_none();
-    for f in &doc.frames {
-        let nested = !single && !f.implicit;
-        let indent = if nested { "        " } else { "    " };
-        if nested {
-            let fid = ids.get(&format!("frame:{}", f.id));
-            let _ = writeln!(out, "    subgraph {fid}[\"{}\"]", label(f.label.as_deref().unwrap_or(f.id.as_str())));
-            let fdir = f.direction.unwrap_or(default_dir(effective(doc, f)));
-            if fdir != dir {
-                let _ = writeln!(out, "        direction {}", mermaid_dir(fdir));
+    for visit in frame_tree(doc) {
+        match visit {
+            Visit::Open(f, depth) => {
+                let nested = !single && !f.implicit;
+                let outer = "    ".repeat(depth + 1);
+                let indent = if nested { format!("{outer}    ") } else { outer.clone() };
+                if nested {
+                    let fid = ids.get(&format!("frame:{}", f.id));
+                    let name = label(f.label.as_deref().unwrap_or(f.id.as_str()));
+                    let _ = writeln!(out, "{outer}subgraph {fid}[\"{name}\"]");
+                    let fdir = f.direction.unwrap_or(default_dir(effective(doc, f)));
+                    if fdir != dir {
+                        let _ = writeln!(out, "{indent}direction {}", mermaid_dir(fdir));
+                    }
+                }
+                for n in doc.nodes_in(&f.id) {
+                    let _ = writeln!(out, "{indent}{}", decl(&mut ids, n));
+                }
             }
-        }
-        for n in doc.nodes_in(&f.id) {
-            let _ = writeln!(out, "{indent}{}", decl(&mut ids, n));
-        }
-        if nested {
-            out.push_str("    end\n");
+            Visit::Close(f, depth) => {
+                if !single && !f.implicit {
+                    let _ = writeln!(out, "{}end", "    ".repeat(depth + 1));
+                }
+            }
         }
     }
 
@@ -232,7 +278,8 @@ fn css(s: &Style, edge: bool) -> String {
 
 // ---------------------------------------------------------------- import --
 
-pub fn import(src: &str) -> Result<File, Vec<Diagnostic>> {
+/// Warnings (constructs that were dropped) come back with the file.
+pub fn import(src: &str) -> Result<(File, Vec<Diagnostic>), Vec<Diagnostic>> {
     let (title, body_start) = front_matter(src);
     let mut lines = src[body_start..].lines().enumerate().peekable();
     let offset = |line_idx: usize| line_span(src, body_start, line_idx);
@@ -251,21 +298,138 @@ pub fn import(src: &str) -> Result<File, Vec<Diagnostic>> {
     let header = strip_comment(header).trim();
     let kind = header.split_whitespace().next().unwrap_or("");
     let rest: Vec<(usize, &str)> = lines.collect();
+    let mut warnings = Vec::new();
     let mut file = match kind {
         "flowchart" | "graph" => Flowchart::new(src, body_start).run(header, &rest)?,
         "mindmap" => mindmap(&rest, &offset)?,
+        "sequenceDiagram" => sequence(&rest, &offset, &mut warnings),
         "stateDiagram" | "stateDiagram-v2" => state_diagram(&rest, &offset)?,
         other => {
             return Err(vec![
                 Diagnostic::error(format!("Mermaid `{other}` diagrams are not supported yet"), offset(hi))
-                    .with_help("supported: flowchart, graph, mindmap, stateDiagram"),
+                    .with_help("supported: flowchart, graph, mindmap, sequenceDiagram, stateDiagram"),
             ]);
         }
     };
     if file.title.is_none() {
         file.title = title;
     }
-    Ok(file)
+    Ok((file, warnings))
+}
+
+/// Message arrows, longest first so `-->>` is not read as `-->`.
+const MESSAGE_ARROWS: &[(&str, Arrow, LineStyle)] = &[
+    ("<<-->>", Arrow::Both, LineStyle::Dashed),
+    ("<<->>", Arrow::Both, LineStyle::Solid),
+    ("-->>", Arrow::End, LineStyle::Dashed),
+    ("--x", Arrow::End, LineStyle::Dashed),
+    ("--)", Arrow::End, LineStyle::Dashed),
+    ("->>", Arrow::End, LineStyle::Solid),
+    ("-->", Arrow::None, LineStyle::Dashed),
+    ("-x", Arrow::End, LineStyle::Solid),
+    ("-)", Arrow::End, LineStyle::Solid),
+    ("->", Arrow::None, LineStyle::Solid),
+];
+
+/// Participants, actors, messages and notes. Blocks (`alt`, `loop`, ...),
+/// activations and numbering are dropped with one warning each; the
+/// messages inside blocks are kept.
+// shortcut: blocks are flattened, upgrade once rhizo has fragments
+// (e.g. frames inside a sequence) to keep `alt`/`loop` structure.
+fn sequence(
+    lines: &[(usize, &str)],
+    offset: &dyn Fn(usize) -> rhizo_lang::ast::Span,
+    warnings: &mut Vec<Diagnostic>,
+) -> File {
+    let mut file = File { layout: Some(LayoutKind::Sequence), ..Default::default() };
+    let mut seen: HashMap<String, usize> = HashMap::new();
+    let mut touch = |id: &str, nodes: &mut Vec<NodeDef>| -> usize {
+        *seen.entry(id.to_string()).or_insert_with(|| {
+            let mut d = NodeDef::new(id);
+            d.id = Some(id.to_string());
+            nodes.push(d);
+            nodes.len() - 1
+        })
+    };
+    let mut dropped: Vec<&str> = Vec::new();
+    for &(i, raw) in lines {
+        let t = strip_comment(raw).trim();
+        let t = t.strip_prefix("create ").unwrap_or(t).trim();
+        let word = t.split_whitespace().next().unwrap_or("");
+        let rest = t[word.len()..].trim();
+        match word {
+            "" => {}
+            "participant" | "actor" => {
+                let (id, label) = match rest.split_once(" as ") {
+                    Some((id, label)) => (id.trim(), Some(decode(label))),
+                    None => (rest, None),
+                };
+                let k = touch(id, &mut file.nodes);
+                let def = &mut file.nodes[k];
+                def.span = offset(i);
+                if let Some(label) = label {
+                    def.label = label;
+                }
+                if word == "actor" {
+                    def.style.shape = Some(Shape::Pill);
+                }
+            }
+            "title" => file.title = Some(decode(rest.trim_start_matches(':'))),
+            w if w.eq_ignore_ascii_case("note") => {
+                // `Note right of A: text`, `Note over A,B: text`: kept on the first participant.
+                let Some((place, text)) = rest.split_once(':') else { continue };
+                let who = place.split_whitespace().last().unwrap_or("").split(',').next().unwrap_or("").trim();
+                if who.is_empty() {
+                    continue;
+                }
+                let k = touch(who, &mut file.nodes);
+                let note = &mut file.nodes[k].note;
+                let text = decode(text);
+                *note = Some(match note.take() {
+                    Some(old) => format!("{old}\n{text}"),
+                    None => text,
+                });
+            }
+            // Block continuations; the opening keyword already warned.
+            "accTitle:" | "accDescr:" | "accDescr" | "end" | "else" | "and" | "option" => {}
+            _ => {
+                let Some((a, arrow, line, b, text)) = message(t) else {
+                    if !dropped.contains(&word) {
+                        dropped.push(word);
+                        warnings.push(Diagnostic::warning(
+                            format!("Mermaid `{word}` has no rhizo equivalent yet; the line was skipped"),
+                            offset(i),
+                        ));
+                    }
+                    continue;
+                };
+                let (a, b) = (touch(a, &mut file.nodes), touch(b, &mut file.nodes));
+                let id = |k: usize| file.nodes[k].id.clone().unwrap();
+                let mut e = EdgeDef::new(id(a), id(b));
+                e.label = text.map(decode).filter(|l| !l.is_empty());
+                e.arrow = Some(arrow).filter(|a| *a != Arrow::End);
+                e.style.line = Some(line).filter(|l| *l != LineStyle::Solid);
+                e.span = offset(i);
+                file.edges.push(e);
+            }
+        }
+    }
+    file
+}
+
+/// `A->>+B: text` as (from, arrow, line, to, text).
+fn message(t: &str) -> Option<(&str, Arrow, LineStyle, &str, Option<&str>)> {
+    let (head, text) = match t.split_once(':') {
+        Some((h, x)) => (h, Some(x)),
+        None => (t, None),
+    };
+    let (at, &(op, arrow, line)) = (1..head.len())
+        .filter(|&i| head.is_char_boundary(i))
+        .find_map(|i| MESSAGE_ARROWS.iter().find(|(op, ..)| head[i..].starts_with(op)).map(|m| (i, m)))?;
+    let from = head[..at].trim();
+    // `+`/`-` after the arrow (de)activates the receiver.
+    let to = head[at + op.len()..].trim().trim_start_matches(['+', '-']).trim();
+    (!from.is_empty() && !to.is_empty() && !to.contains(char::is_whitespace)).then_some((from, arrow, line, to, text))
 }
 
 fn front_matter(src: &str) -> (Option<String>, usize) {
@@ -370,6 +534,8 @@ struct Flowchart<'a> {
     nodes: Vec<(Option<usize>, NodeDef)>,
     index: HashMap<String, usize>,
     frames: Vec<FrameDef>,
+    /// The subgraph each frame was declared in, by index.
+    parents: Vec<Option<usize>>,
     stack: Vec<usize>,
     classes: HashMap<String, Style>,
     edge_styles: Vec<(String, Style)>,
@@ -385,6 +551,7 @@ impl<'a> Flowchart<'a> {
             nodes: Vec::new(),
             index: HashMap::new(),
             frames: Vec::new(),
+            parents: Vec::new(),
             stack: Vec::new(),
             classes: HashMap::new(),
             edge_styles: Vec::new(),
@@ -433,6 +600,7 @@ impl<'a> Flowchart<'a> {
                     layout: Some(LayoutKind::Layered),
                     ..Default::default()
                 });
+                self.parents.push(self.stack.last().copied());
                 self.stack.push(self.frames.len() - 1);
             }
             "end" if rest.is_empty() => {
@@ -609,7 +777,15 @@ impl<'a> Flowchart<'a> {
                 None => self.file.nodes.push(def),
             }
         }
-        self.file.frames = self.frames;
+        // Nested subgraphs become nested frames; a child always follows its parent.
+        let mut frames: Vec<Option<FrameDef>> = self.frames.into_iter().map(Some).collect();
+        for i in (0..frames.len()).rev() {
+            if let Some(p) = self.parents[i] {
+                let child = frames[i].take().expect("children are moved once");
+                frames[p].as_mut().expect("parents come first").frames.insert(0, child);
+            }
+        }
+        self.file.frames = frames.into_iter().flatten().collect();
         Ok(self.file)
     }
 }
@@ -890,10 +1066,10 @@ fn mindmap(lines: &[(usize, &str)], offset: &dyn Fn(usize) -> rhizo_lang::ast::S
         return Err(diags);
     }
     // Root's shape is the theme's job unless it was set explicitly as a circle.
-    if let Some(root) = items.first_mut() {
-        if root.1.style.shape == Some(Shape::Circle) {
-            root.1.style.shape = None;
-        }
+    if let Some(root) = items.first_mut()
+        && root.1.style.shape == Some(Shape::Circle)
+    {
+        root.1.style.shape = None;
     }
     let mut defs: Vec<Option<NodeDef>> = items.iter().map(|(_, d, _)| Some(d.clone())).collect();
     for k in (1..items.len()).rev() {

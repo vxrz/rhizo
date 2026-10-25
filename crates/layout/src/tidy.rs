@@ -90,6 +90,23 @@ pub struct Spacing {
 /// minimum breadth at 0 and the roots at depth 0. Roots are packed like
 /// siblings.
 pub fn layout(size: &[(f32, f32)], children: &[Vec<usize>], roots: &[usize], sp: &Spacing) -> Vec<(f32, f32)> {
+    layout_kept(size, children, roots, sp, &[])
+}
+
+/// [`layout`], staying close to a previous layout: `before[i]` is node
+/// `i`'s breadth center in it. Siblings keep their distance from the first
+/// of them that was there before, unless they must move apart to clear each
+/// other (gaps stay; only what would overlap is pushed). A parent keeps its
+/// offset from that first child (clamped to its children's span) instead of
+/// centering on them. An edit in one subtree so moves the siblings after it,
+/// and only as far as they must; nothing above it recenters.
+pub fn layout_kept(
+    size: &[(f32, f32)],
+    children: &[Vec<usize>],
+    roots: &[usize],
+    sp: &Spacing,
+    before: &[Option<f32>],
+) -> Vec<(f32, f32)> {
     let n = size.len();
     // Per node: breadth of the node's top within its own subtree frame, and
     // its contour in that frame.
@@ -108,11 +125,21 @@ pub fn layout(size: &[(f32, f32)], children: &[Vec<usize>], roots: &[usize], sp:
             continue;
         }
         let off = dv + sp.level;
-        let (merged, offsets) = pack(kids, &mut contour, sp.sibling, off);
+        let want = |k: usize, offsets: &[f32]| kept_offset(kids, k, offsets, &node_b, size, before);
+        let (merged, offsets) = pack(kids, &mut contour, sp.sibling, off, &want);
         let (first, last) = (kids[0], *kids.last().unwrap());
         let first_c = offsets[0] + node_b[first] + size[first].1 / 2.0;
         let last_c = offsets[offsets.len() - 1] + node_b[last] + size[last].1 / 2.0;
-        let top = (first_c + last_c) / 2.0 - bv / 2.0;
+        let kept = before.get(v).copied().flatten().and_then(|was| {
+            let k = kids.iter().position(|&c| before.get(c).copied().flatten().is_some())?;
+            let c = kids[k];
+            let child = offsets[k] + node_b[c] + size[c].1 / 2.0;
+            Some((child + was - before[c]?).clamp(first_c.min(last_c), first_c.max(last_c)))
+        });
+        let top = match kept {
+            Some(center) => center - bv / 2.0,
+            None => (first_c + last_c) / 2.0 - bv / 2.0,
+        };
         let min = merged.iter().map(|s| s.lo).fold(top, f32::min);
         node_b[v] = top - min;
         for (k, &c) in kids.iter().enumerate() {
@@ -125,7 +152,8 @@ pub fn layout(size: &[(f32, f32)], children: &[Vec<usize>], roots: &[usize], sp:
     }
 
     // Pack the roots as siblings of a virtual parent at depth 0.
-    let (_, root_offsets) = pack(roots, &mut contour, sp.sibling, 0.0);
+    let want = |k: usize, offsets: &[f32]| kept_offset(roots, k, offsets, &node_b, size, before);
+    let (_, root_offsets) = pack(roots, &mut contour, sp.sibling, 0.0, &want);
     let mut frame = vec![(0.0f32, 0.0f32); n];
     let mut pos = vec![(0.0f32, 0.0f32); n];
     for (k, &r) in roots.iter().enumerate() {
@@ -146,16 +174,47 @@ pub fn layout(size: &[(f32, f32)], children: &[Vec<usize>], roots: &[usize], sp:
     pos
 }
 
-/// Stacks subtrees along the breadth axis as tightly as their contours allow.
-/// Consumes their contours; returns the merged contour (in the parent's
-/// frame, depth-shifted by `off`) and each subtree's breadth offset.
-fn pack(kids: &[usize], contour: &mut [Option<Contour>], gap: f32, off: f32) -> (Contour, Vec<f32>) {
+/// Where subtree `k` of `kids` goes to keep its node's previous distance
+/// from the first sibling before it that was there before; `None` when
+/// either is new (or there is no previous layout).
+fn kept_offset(
+    kids: &[usize],
+    k: usize,
+    offsets: &[f32],
+    node_b: &[f32],
+    size: &[(f32, f32)],
+    before: &[Option<f32>],
+) -> Option<f32> {
+    let was = |c: usize| before.get(c).copied().flatten();
+    let (c, bc) = (kids[k], was(kids[k])?);
+    let j = (0..k).find(|&j| was(kids[j]).is_some())?;
+    let r = kids[j];
+    let center_r = offsets[j] + node_b[r] + size[r].1 / 2.0;
+    Some(center_r + bc - was(r)? - node_b[c] - size[c].1 / 2.0)
+}
+
+/// Stacks subtrees along the breadth axis as tightly as their contours allow,
+/// or further where `want` asks for it. Consumes their contours; returns the
+/// merged contour (in the parent's frame, depth-shifted by `off`) and each
+/// subtree's breadth offset.
+fn pack(
+    kids: &[usize],
+    contour: &mut [Option<Contour>],
+    gap: f32,
+    off: f32,
+    want: &dyn Fn(usize, &[f32]) -> Option<f32>,
+) -> (Contour, Vec<f32>) {
     let mut merged: Contour = Vec::new();
     let mut offsets = Vec::with_capacity(kids.len());
     for (k, &c) in kids.iter().enumerate() {
         let mut cc = contour[c].take().unwrap_or_default();
         shift(&mut cc, off, 0.0);
-        let s = if k == 0 { 0.0 } else { separation(&merged, &cc, gap).max(*offsets.last().unwrap()) };
+        let s = if k == 0 {
+            0.0
+        } else {
+            let s = separation(&merged, &cc, gap).max(*offsets.last().unwrap());
+            want(k, &offsets).map_or(s, |w| s.max(w))
+        };
         shift(&mut cc, 0.0, s);
         merged = if k == 0 { cc } else { union(&merged, &cc) };
         offsets.push(s);

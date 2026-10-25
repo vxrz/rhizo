@@ -77,8 +77,19 @@ fn xml_error(e: roxmltree::Error) -> Vec<Diagnostic> {
     vec![Diagnostic::error(format!("invalid XML at line {}, column {}: {e}", pos.row, pos.col), None)]
 }
 
+/// Refuses XML nested deeper than rhizo reads (the walk below recurses).
+fn depth_ok(doc: &roxmltree::Document) -> Result<(), Vec<Diagnostic>> {
+    let deepest = doc.descendants().filter(|n| n.is_element()).map(|n| n.ancestors().count()).max().unwrap_or(0);
+    if deepest > rhizo_lang::MAX_DEPTH {
+        let msg = format!("nested {deepest} levels deep; rhizo reads at most {}", rhizo_lang::MAX_DEPTH);
+        return Err(vec![Diagnostic::error(msg, None)]);
+    }
+    Ok(())
+}
+
 pub fn opml_import(src: &str) -> Result<File, Vec<Diagnostic>> {
     let doc = roxmltree::Document::parse(src).map_err(xml_error)?;
+    depth_ok(&doc)?;
     let root = doc.root_element();
     if root.tag_name().name() != "opml" {
         return Err(vec![Diagnostic::error("not an OPML document (no <opml> root)", None)]);
@@ -201,6 +212,7 @@ fn mm_id(id: &NodeId) -> String {
 
 pub fn freemind_import(src: &str) -> Result<File, Vec<Diagnostic>> {
     let doc = roxmltree::Document::parse(src).map_err(xml_error)?;
+    depth_ok(&doc)?;
     let map = doc.root_element();
     if map.tag_name().name() != "map" {
         return Err(vec![Diagnostic::error("not a FreeMind/Freeplane map (no <map> root)", None)]);
@@ -257,10 +269,10 @@ pub fn freemind_import(src: &str) -> Result<File, Vec<Diagnostic>> {
     let linked: std::collections::HashSet<usize> =
         edges.iter().flat_map(|(a, b)| [ids.get(a), ids.get(b)]).flatten().copied().collect();
     fn strip(def: &mut NodeDef, linked: &std::collections::HashSet<usize>) {
-        if let Some(n) = def.id.as_deref().and_then(|i| i.strip_prefix("mm-")).and_then(|n| n.parse::<usize>().ok()) {
-            if !linked.contains(&n) {
-                def.id = None;
-            }
+        if let Some(n) = def.id.as_deref().and_then(|i| i.strip_prefix("mm-")).and_then(|n| n.parse::<usize>().ok())
+            && !linked.contains(&n)
+        {
+            def.id = None;
         }
         for c in &mut def.children {
             strip(c, linked);
@@ -360,14 +372,12 @@ pub fn markdown_import(src: &str) -> Result<File, Vec<Diagnostic>> {
     let mut in_code = false;
     let mut title = None;
     let mut body = src;
-    if let Some(rest) = src.strip_prefix("---\n") {
-        if let Some(end) = rest.find("\n---") {
-            title = rest[..end]
-                .lines()
-                .find_map(|l| l.strip_prefix("title:"))
-                .map(|t| t.trim().trim_matches('"').to_string());
-            body = rest[end + 4..].trim_start_matches(['-', '\n']);
-        }
+    if let Some(rest) = src.strip_prefix("---\n")
+        && let Some(end) = rest.find("\n---")
+    {
+        title =
+            rest[..end].lines().find_map(|l| l.strip_prefix("title:")).map(|t| t.trim().trim_matches('"').to_string());
+        body = rest[end + 4..].trim_start_matches(['-', '\n']);
     }
     for line in body.lines() {
         if line.trim_start().starts_with("```") {
@@ -399,14 +409,14 @@ pub fn markdown_import(src: &str) -> Result<File, Vec<Diagnostic>> {
                 Some(b) => (10 + indent, b.trim().to_string()),
                 None => {
                     // A quote under an item is its note; other prose is skipped.
-                    if let Some(q) = t.strip_prefix('>') {
-                        if let Some((_, last, _)) = items.last_mut() {
-                            let q = q.trim();
-                            last.note = Some(match last.note.take() {
-                                Some(n) => format!("{n}\n{q}"),
-                                None => q.to_string(),
-                            });
-                        }
+                    if let Some(q) = t.strip_prefix('>')
+                        && let Some((_, last, _)) = items.last_mut()
+                    {
+                        let q = q.trim();
+                        last.note = Some(match last.note.take() {
+                            Some(n) => format!("{n}\n{q}"),
+                            None => q.to_string(),
+                        });
                     }
                     continue;
                 }
@@ -441,10 +451,10 @@ pub fn markdown_import(src: &str) -> Result<File, Vec<Diagnostic>> {
 
 /// `[text](url)` as the whole item becomes a linked node.
 fn split_link(s: &str) -> (String, Option<String>) {
-    if let (Some(rest), true) = (s.strip_prefix('['), s.ends_with(')')) {
-        if let Some((text, url)) = rest.split_once("](") {
-            return (text.to_string(), Some(url[..url.len() - 1].to_string()));
-        }
+    if let (Some(rest), true) = (s.strip_prefix('['), s.ends_with(')'))
+        && let Some((text, url)) = rest.split_once("](")
+    {
+        return (text.to_string(), Some(url[..url.len() - 1].to_string()));
     }
     (s.to_string(), None)
 }

@@ -63,15 +63,21 @@ impl Path {
 
     /// A point roughly halfway along the path (by segment, then parameter).
     pub fn midpoint(&self) -> Point {
+        self.at(0.5)
+    }
+
+    /// A point roughly `frac` of the way along the path (by segment, then
+    /// parameter).
+    pub fn at(&self, frac: f32) -> Point {
         if self.segs.is_empty() {
             return self.start;
         }
         let lengths: Vec<f32> = (0..self.segs.len()).map(|i| self.seg_start(i).distance(self.segs[i].end())).collect();
-        let total: f32 = lengths.iter().sum();
+        let goal = lengths.iter().sum::<f32>() * frac;
         let mut acc = 0.0;
         for (i, len) in lengths.iter().enumerate() {
-            if acc + len >= total / 2.0 || i == self.segs.len() - 1 {
-                let t = if *len > 0.0 { ((total / 2.0 - acc) / len).clamp(0.0, 1.0) } else { 0.5 };
+            if acc + len >= goal || i == self.segs.len() - 1 {
+                let t = if *len > 0.0 { ((goal - acc) / len).clamp(0.0, 1.0) } else { 0.5 };
                 return self.eval(i, t);
             }
             acc += len;
@@ -79,7 +85,21 @@ impl Path {
         self.end()
     }
 
-    fn eval(&self, i: usize, t: f32) -> Point {
+    /// Points along the path: segment ends, plus `steps - 1` samples inside
+    /// each curve.
+    pub fn flatten(&self, steps: usize) -> Vec<Point> {
+        let mut pts = vec![self.start];
+        for (i, s) in self.segs.iter().enumerate() {
+            if let Seg::Cubic(..) = s {
+                pts.extend((1..steps).map(|k| self.eval(i, k as f32 / steps as f32)));
+            }
+            pts.push(s.end());
+        }
+        pts
+    }
+
+    /// The point at parameter `t` (0..=1) of segment `i`.
+    pub fn eval(&self, i: usize, t: f32) -> Point {
         let p0 = self.seg_start(i);
         match self.segs[i] {
             Seg::Line(p) => p0.lerp(p, t),
@@ -142,7 +162,7 @@ impl Path {
     }
 }
 
-fn unit(a: Point, b: Point) -> Point {
+pub(crate) fn unit(a: Point, b: Point) -> Point {
     let d = a.distance(b);
     if d < 1e-6 { Point::new(1.0, 0.0) } else { Point::new((b.x - a.x) / d, (b.y - a.y) / d) }
 }

@@ -44,6 +44,10 @@ pub struct File {
     /// CURIE prefixes, e.g. `HP: http://purl.obolibrary.org/obo/HP_`.
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub prefixes: IndexMap<String, String>,
+    /// Other rhizo files whose nodes this one refers to, by alias:
+    /// `import "model.rhizo" as=model` makes `model:order` a reference.
+    #[serde(rename = "import", default, skip_serializing_if = "IndexMap::is_empty")]
+    pub imports: IndexMap<String, String>,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub styles: IndexMap<String, Style>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -81,12 +85,29 @@ pub struct FrameDef {
     pub nodes: Vec<NodeDef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub edges: Vec<EdgeDef>,
+    /// Frames drawn inside this one, each laid out with its own layout.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub frames: Vec<FrameDef>,
     #[serde(flatten, skip_serializing)]
     #[schemars(skip)]
     pub extra: Extra,
     #[serde(skip)]
     #[schemars(skip)]
     pub span: Span,
+}
+
+impl File {
+    /// Every frame, nested ones included, parents before their children
+    /// (the order frames lower in).
+    pub fn all_frames(&self) -> Vec<&FrameDef> {
+        let mut out = Vec::new();
+        let mut stack: Vec<&FrameDef> = self.frames.iter().rev().collect();
+        while let Some(f) = stack.pop() {
+            out.push(f);
+            stack.extend(f.frames.iter().rev());
+        }
+        out
+    }
 }
 
 /// A node. In JSON and YAML a bare string is shorthand for `{label: ...}`.

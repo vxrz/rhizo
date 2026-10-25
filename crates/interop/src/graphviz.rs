@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use rhizo_core::{Arrow, Direction, Document, LayoutKind, LineStyle, Node, Shape, Style, Theme};
 
-use crate::util::{Ids, effective, quoted};
+use crate::util::{Ids, Visit, effective, frame_tree, quoted};
 
 fn node_style(doc: &Document, n: &Node) -> Style {
     n.class.iter().filter_map(|c| doc.styles.get(c)).fold(Style::default(), |a, s| a.overlay(s)).overlay(&n.style)
@@ -55,16 +55,28 @@ pub fn dot(doc: &Document) -> String {
         theme.muted_text.to_hex_rgb()
     );
 
-    for f in &doc.frames {
+    for visit in frame_tree(doc) {
+        let (f, depth) = match visit {
+            Visit::Open(f, depth) => (f, depth),
+            Visit::Close(f, depth) => {
+                if !f.implicit {
+                    let _ = writeln!(s, "{}}}", "    ".repeat(depth + 1));
+                }
+                continue;
+            }
+        };
         let cluster = !f.implicit;
-        let indent = if cluster { "        " } else { "    " };
+        let outer = "    ".repeat(depth + 1);
+        let indent = if cluster { format!("{outer}    ") } else { outer.clone() };
         if cluster {
-            let _ = writeln!(s, "    subgraph cluster_{} {{", ids.get(&format!("frame:{}", f.id)));
+            let _ = writeln!(s, "{outer}subgraph cluster_{} {{", ids.get(&format!("frame:{}", f.id)));
+            // Nested clusters alternate fills, like the drawing.
+            let fill = if depth % 2 == 1 { theme.background } else { theme.frame_fill };
             let _ = writeln!(
                 s,
-                "        label={}; style=\"rounded,filled\"; fillcolor=\"{}\"; color=\"{}\";",
+                "{indent}label={}; style=\"rounded,filled\"; fillcolor=\"{}\"; color=\"{}\";",
                 quoted(f.label.as_deref().unwrap_or("")),
-                theme.frame_fill.to_hex_rgb(),
+                fill.to_hex_rgb(),
                 theme.frame_stroke.to_hex_rgb()
             );
         }
@@ -101,9 +113,6 @@ pub fn dot(doc: &Document) -> String {
                 attrs.push(format!("tooltip={}", quoted(t)));
             }
             let _ = writeln!(s, "{indent}{} [{}];", ids.get(n.id.as_str()), attrs.join(", "));
-        }
-        if cluster {
-            s.push_str("    }\n");
         }
     }
     for n in doc.nodes.values() {
@@ -176,18 +185,42 @@ pub fn d2(doc: &Document) -> String {
         s.push_str("}\n");
     }
     let mut path_of = std::collections::HashMap::new();
-    for f in &doc.frames {
+    // Messages of sequence frames go inside their container: D2 orders them
+    // by declaration there.
+    let mut written = vec![false; doc.edges.len()];
+    // Each open container's path, so nested ones become `outer.inner.node`.
+    let mut prefixes: Vec<String> = Vec::new();
+    for visit in frame_tree(doc) {
+        let (f, depth) = match visit {
+            Visit::Open(f, depth) => (f, depth),
+            Visit::Close(f, depth) => {
+                if !f.implicit {
+                    prefixes.pop();
+                    let _ = writeln!(s, "{}}}", "  ".repeat(depth));
+                }
+                continue;
+            }
+        };
         s.push('\n');
         let container = !f.implicit;
-        let prefix = if container { format!("{}.", ids.get(&format!("frame:{}", f.id))) } else { String::new() };
-        let indent = if container { "  " } else { "" };
+        let outer = "  ".repeat(depth);
+        let fid = ids.get(&format!("frame:{}", f.id));
+        let prefix = match container {
+            true => format!("{}{fid}.", prefixes.last().map_or("", String::as_str)),
+            false => String::new(),
+        };
+        let indent = if container { format!("{outer}  ") } else { outer.clone() };
+        let indent = indent.as_str();
         if container {
-            let _ = writeln!(
-                s,
-                "{}: {} {{",
-                ids.get(&format!("frame:{}", f.id)),
-                quoted(f.label.as_deref().unwrap_or(f.id.as_str()))
-            );
+            let _ = writeln!(s, "{outer}{fid}: {} {{", quoted(f.label.as_deref().unwrap_or(f.id.as_str())));
+            prefixes.push(prefix.clone());
+        }
+        let sequence = effective(doc, f) == LayoutKind::Sequence;
+        if sequence {
+            // shortcut: an implicit sequence frame makes the whole D2 root a
+            // sequence diagram, other frames included; fine while documents
+            // mixing it with frames are rare.
+            let _ = writeln!(s, "{indent}shape: sequence_diagram");
         }
         for n in doc.nodes_in(&f.id) {
             let id = ids.get(n.id.as_str());
@@ -223,8 +256,14 @@ pub fn d2(doc: &Document) -> String {
                 let _ = write!(s, "{indent}{id}: {} {{\n{body}{indent}}}\n", quoted(&n.label));
             }
         }
-        if container {
-            s.push_str("}\n");
+        if sequence {
+            for (k, e) in doc.edges.iter().enumerate() {
+                let inside = |id| doc.node(id).is_some_and(|n| n.frame == f.id);
+                if inside(&e.from) && inside(&e.to) {
+                    written[k] = true;
+                    d2_edge(&mut s, e, &ids.get(e.from.as_str()), &ids.get(e.to.as_str()), indent);
+                }
+            }
         }
     }
     s.push('\n');
@@ -233,34 +272,38 @@ pub fn d2(doc: &Document) -> String {
             let _ = writeln!(s, "{} -> {}", path_of[&n.id], path_of[c]);
         }
     }
-    for e in &doc.edges {
-        let op = match e.arrow {
-            Arrow::End => "->",
-            Arrow::Start => "<-",
-            Arrow::Both => "<->",
-            Arrow::None => "--",
-        };
-        let mut line = format!("{} {op} {}", path_of[&e.from], path_of[&e.to]);
-        if let Some(l) = &e.label {
-            line.push_str(&format!(": {}", quoted(l)));
-        }
-        let mut st = String::new();
-        if e.line() != LineStyle::Solid {
-            st.push_str("  style.stroke-dash: 4\n");
-        }
-        if let Some(c) = e.style.stroke {
-            st.push_str(&format!("  style.stroke: \"{c}\"\n"));
-        }
-        if let Some(w) = e.style.stroke_width {
-            st.push_str(&format!("  style.stroke-width: {}\n", w.round().max(1.0)));
-        }
-        if st.is_empty() {
-            let _ = writeln!(s, "{line}");
-        } else {
-            let _ = write!(s, "{line} {{\n{st}}}\n");
-        }
+    for (e, _) in doc.edges.iter().zip(&written).filter(|(_, w)| !**w) {
+        d2_edge(&mut s, e, &path_of[&e.from], &path_of[&e.to], "");
     }
     s
+}
+
+fn d2_edge(s: &mut String, e: &rhizo_core::Edge, from: &str, to: &str, indent: &str) {
+    let op = match e.arrow {
+        Arrow::End => "->",
+        Arrow::Start => "<-",
+        Arrow::Both => "<->",
+        Arrow::None => "--",
+    };
+    let mut line = format!("{indent}{from} {op} {to}");
+    if let Some(l) = &e.label {
+        line.push_str(&format!(": {}", quoted(l)));
+    }
+    let mut st = String::new();
+    if e.line() != LineStyle::Solid {
+        st.push_str(&format!("{indent}  style.stroke-dash: 4\n"));
+    }
+    if let Some(c) = e.style.stroke {
+        st.push_str(&format!("{indent}  style.stroke: \"{c}\"\n"));
+    }
+    if let Some(w) = e.style.stroke_width {
+        st.push_str(&format!("{indent}  style.stroke-width: {}\n", w.round().max(1.0)));
+    }
+    if st.is_empty() {
+        let _ = writeln!(s, "{line}");
+    } else {
+        let _ = write!(s, "{line} {{\n{st}{indent}}}\n");
+    }
 }
 
 fn d2_style(s: &mut String, st: &Style, indent: &str) {

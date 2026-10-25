@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-32 -32 594 433" width="594" height="433" role="img" aria-labelledby="rz-title" font-family="Inter, &quot;SF Pro Text&quot;, -apple-system, &quot;Segoe UI&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif" class="rhizo">
+<title id="rz-title">Checkout</title>
+<desc>4 nodes, 7 connections. Made with rhizo.</desc>
+<defs>
+<marker id="rz-arrow-71717a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M1,1.5 L9,5 L1,8.5 Z" fill="#71717a"/></marker>
+</defs>
+<rect class="rz-background" x="-32" y="-32" width="594" height="433" fill="#ffffff"/>
+<g class="rz-frames">
+</g>
+<g class="rz-edges">
+<g class="rz-edge rz-lifeline" data-from="customer" data-to="customer"><path d="M52,37 L52,369" fill="none" stroke="#d4d4d8" stroke-width="1" stroke-linecap="round" stroke-dasharray="6 5"/></g>
+<g class="rz-edge rz-lifeline" data-from="web" data-to="web"><path d="M195,37 L195,369" fill="none" stroke="#d4d4d8" stroke-width="1" stroke-linecap="round" stroke-dasharray="6 5"/></g>
+<g class="rz-edge rz-lifeline" data-from="api" data-to="api"><path d="M336.5,37 L336.5,369" fill="none" stroke="#d4d4d8" stroke-width="1" stroke-linecap="round" stroke-dasharray="6 5"/></g>
+<g class="rz-edge rz-lifeline" data-from="pay" data-to="pay"><path d="M482.5,37 L482.5,369" fill="none" stroke="#d4d4d8" stroke-width="1" stroke-linecap="round" stroke-dasharray="6 5"/></g>
+<g class="rz-edge rz-link" data-from="customer" data-to="web"><path d="M52,81 L195,81" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="87.6" y="59" width="71.8" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="123.5" y="73.2" font-size="12" fill="#18181b" text-anchor="middle">Place order</text></g></g>
+<g class="rz-edge rz-link" data-from="web" data-to="api"><path d="M195,121 L336.5,121" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="222.77" y="99" width="85.96" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="265.75" y="113.2" font-size="12" fill="#18181b" text-anchor="middle">POST /orders</text></g></g>
+<g class="rz-edge rz-link" data-from="api" data-to="pay"><path d="M336.5,161 L482.5,161" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="371.92" y="139" width="75.16" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="409.5" y="153.2" font-size="12" fill="#18181b" text-anchor="middle">Charge card</text></g></g>
+<g class="rz-edge rz-link" data-from="pay" data-to="api"><path d="M482.5,201 L336.5,201" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="8 6.5" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="383.08" y="179" width="52.84" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="409.5" y="193.2" font-size="12" fill="#18181b" text-anchor="middle">charged</text></g></g>
+<g class="rz-edge rz-link" data-from="api" data-to="api"><path d="M336.5,241 L364.5,241 C367.8,241 370.5,243.7 370.5,247 L370.5,259 C370.5,262.3 367.8,265 364.5,265 L336.5,265" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="344.5" y="219" width="68.68" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="378.84" y="233.2" font-size="12" fill="#18181b" text-anchor="middle">Save order</text></g></g>
+<g class="rz-edge rz-link" data-from="api" data-to="web"><path d="M336.5,305 L195,305" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="8 6.5" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="227.81" y="283" width="75.88" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="265.75" y="297.2" font-size="12" fill="#18181b" text-anchor="middle">201 Created</text></g></g>
+<g class="rz-edge rz-link" data-from="web" data-to="customer"><path d="M195,345 L52,345" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="8 6.5" marker-end="url(#rz-arrow-71717a)"/><g class="rz-edge-label"><rect x="84.12" y="323" width="78.76" height="20" rx="4" fill="#ffffff" fill-opacity="0.92"/><text x="123.5" y="337.2" font-size="12" fill="#18181b" text-anchor="middle">Confirmation</text></g></g>
+</g>
+<g class="rz-nodes">
+<g class="rz-node rz-shape-pill rz-depth-0" id="node-customer"><rect x="0" y="0" width="104" height="37" rx="18.5" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="52" y="23.4" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">Customer</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-web"><rect x="152" y="0" width="86" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="195" y="23.4" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">Web app</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-api"><rect x="286" y="0" width="101" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="336.5" y="23.4" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">Orders API</text></g>
+<g class="rz-node rz-shape-rounded rz-depth-0" id="node-pay"><rect x="435" y="0" width="95" height="37" rx="8" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.25"/><text x="482.5" y="23.4" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">Payments</text></g>
+</g>
+</svg>

@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use std::fmt::Write;
 
 use rhizo_core::{Color, LineStyle, Shape};
-use rhizo_layout::{Diagram, EdgeBox, EdgeKind, FrameBox, LabelBox, NodeBox, Path, Seg};
+use rhizo_layout::{Diagram, EdgeBox, EdgeKind, FrameBox, Ink, LabelBox, NodeBox, Path, Seg, Typed};
 
 #[derive(Clone, Debug, Default)]
 pub struct SvgOptions {
@@ -37,7 +37,8 @@ pub fn to_svg(d: &Diagram, opts: &SvgOptions) -> String {
     s.push('\n');
     let title = d.title.as_deref().unwrap_or("Diagram");
     let _ = writeln!(s, r#"<title id="rz-title">{}</title>"#, text(title));
-    let _ = writeln!(s, "<desc>{} nodes, {} connections. Made with rhizo.</desc>", d.nodes.len(), d.edges.len());
+    let connections = d.edges.iter().filter(|e| e.kind != EdgeKind::Lifeline).count();
+    let _ = writeln!(s, "<desc>{} nodes, {connections} connections. Made with rhizo.</desc>", d.nodes.len());
 
     let arrow_colors: BTreeSet<String> =
         d.edges.iter().filter(|e| e.arrow.at_end() || e.arrow.at_start()).map(|e| e.color.to_hex_rgb()).collect();
@@ -84,7 +85,9 @@ pub fn to_svg(d: &Diagram, opts: &SvgOptions) -> String {
 
 fn frame(s: &mut String, f: &FrameBox) {
     let r = f.rect;
-    let _ = write!(s, r#"<g class="rz-frame" id="frame-{}">"#, attr(f.id.as_str()));
+    // Top-level frames keep the bare class, so plain documents render byte-identically.
+    let depth = if f.depth > 0 { format!(" rz-frame-nested rz-depth-{}", f.depth) } else { String::new() };
+    let _ = write!(s, r#"<g class="rz-frame{depth}" id="frame-{}">"#, attr(f.id.as_str()));
     let _ = write!(
         s,
         r#"<rect x="{}" y="{}" width="{}" height="{}" rx="14" fill="{}"{} stroke="{}" stroke-width="1"/>"#,
@@ -137,6 +140,7 @@ fn edge(s: &mut String, e: &EdgeBox) {
     let kind = match e.kind {
         EdgeKind::Branch => "rz-branch",
         EdgeKind::Link => "rz-link",
+        EdgeKind::Lifeline => "rz-lifeline",
     };
     let _ = write!(
         s,
@@ -188,10 +192,11 @@ fn node(s: &mut String, nb: &NodeBox) {
     }
     let _ = write!(
         s,
-        r#"<g class="rz-node rz-shape-{} rz-depth-{}{}{}" id="node-{}">"#,
+        r#"<g class="rz-node rz-shape-{} rz-depth-{}{}{}{}" id="node-{}">"#,
         nb.shape.name(),
         nb.depth,
         nb.branch.map(|b| format!(" rz-branch-{b}")).unwrap_or_default(),
+        nb.typed.as_deref().map(typed_classes).unwrap_or_default(),
         user_classes(&nb.class),
         attr(nb.id.as_str())
     );
@@ -273,13 +278,110 @@ fn node(s: &mut String, nb: &NodeBox) {
         }
         Shape::Text => {}
     }
-    let c = r.center();
-    text_block(s, &nb.lines, c.x, c.y, nb.font_size, nb.font_weight, nb.line_height, nb.text);
+    if nb.ink().is_empty() {
+        let c = r.center();
+        text_block(s, &nb.lines, c.x, c.y, nb.font_size, nb.font_weight, nb.line_height, nb.text);
+    }
+    for i in nb.ink() {
+        ink(s, &i.clone().offset(rhizo_core::Point::new(r.x, r.y)));
+    }
     s.push_str("</g>");
     if nb.link.is_some() {
         s.push_str("</a>");
     }
     s.push('\n');
+}
+
+/// `rz-type-data-entity rz-card rz-state-draft`, with a leading space.
+fn typed_classes(t: &Typed) -> String {
+    let mut c = String::new();
+    // Kit type names are `[a-z0-9-]` segments joined by dots; CURIE types may hold anything.
+    if let Some(ty) =
+        t.ty.as_deref().filter(|ty| ty.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '.' || ch == '-'))
+    {
+        let _ = write!(c, " rz-type-{}", ty.replace('.', "-"));
+    }
+    for (on, name) in [(t.card, "rz-card"), (t.row, "rz-row"), (t.container, "rz-container")] {
+        if on {
+            let _ = write!(c, " {name}");
+        }
+    }
+    if t.state != rhizo_core::DecorState::Normal {
+        let _ = write!(c, " rz-state-{}", t.state.name());
+    }
+    c
+}
+
+/// One mark of a typed node's drawing, in diagram coordinates.
+fn ink(s: &mut String, i: &Ink) {
+    match i {
+        Ink::Text { text: t, x, baseline, size, weight, color, end, class } => {
+            let weight = if *weight != 400 { format!(r#" font-weight="{weight}""#) } else { String::new() };
+            let anchor = if *end { r#" text-anchor="end""# } else { "" };
+            let _ = write!(
+                s,
+                r#"<text class="{class}" x="{}" y="{}" font-size="{}"{weight} fill="{}"{anchor}>{}</text>"#,
+                n(*x),
+                n(*baseline),
+                n(*size),
+                color.to_hex_rgb(),
+                text(t)
+            );
+        }
+        Ink::Tag { rect, fill, text: t, size, color, class } => {
+            let c = rect.center();
+            let _ = write!(
+                s,
+                r#"<g class="{class}"><rect x="{}" y="{}" width="{}" height="{}" rx="3" fill="{}"/><text x="{}" y="{}" font-size="{}" font-weight="700" fill="{}" text-anchor="middle">{}</text></g>"#,
+                n(rect.x),
+                n(rect.y),
+                n(rect.width),
+                n(rect.height),
+                fill.to_hex_rgb(),
+                n(c.x),
+                n(c.y + size * 0.35),
+                n(*size),
+                color.to_hex_rgb(),
+                text(t)
+            );
+        }
+        Ink::Rule { from, to, color, width } => {
+            let _ = write!(
+                s,
+                r#"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
+                n(from.x),
+                n(from.y),
+                n(to.x),
+                n(to.y),
+                color.to_hex_rgb(),
+                n(*width)
+            );
+        }
+        Ink::Band { rect: r, radius, fill } => {
+            let rr = radius.min(r.height).min(r.width / 2.0).max(0.0);
+            let _ = write!(
+                s,
+                r#"<path class="rz-card-header" d="M{},{} L{},{} A{},{} 0 0 1 {},{} L{},{} A{},{} 0 0 1 {},{} L{},{} Z" fill="{}"/>"#,
+                n(r.x),
+                n(r.bottom()),
+                n(r.x),
+                n(r.y + rr),
+                n(rr),
+                n(rr),
+                n(r.x + rr),
+                n(r.y),
+                n(r.right() - rr),
+                n(r.y),
+                n(rr),
+                n(rr),
+                n(r.right()),
+                n(r.y + rr),
+                n(r.right()),
+                n(r.bottom()),
+                fill.to_hex_rgb()
+            );
+        }
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

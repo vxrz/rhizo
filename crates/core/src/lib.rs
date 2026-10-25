@@ -6,8 +6,10 @@
 //! UI, a font stack or a file system, so it builds for every target,
 //! including `wasm32-unknown-unknown`.
 
+pub mod about;
 pub mod color;
 pub mod geom;
+pub mod graph;
 pub mod model;
 pub mod style;
 pub mod theme;
@@ -18,7 +20,10 @@ pub use geom::{Point, Rect, Size};
 pub use model::*;
 pub use style::{Arrow, LineStyle, Shape, Style};
 pub use theme::Theme;
-pub use typed::{Citation, Confidence, EdgeKind, KitRef, Port, PortDir, Props, Prov, ProvMethod, Review, ReviewStatus};
+pub use typed::{
+    Badge, Citation, Confidence, Decor, DecorRow, DecorState, EdgeKind, KitRef, Port, PortDir, Props, Prov, ProvMethod,
+    Review, ReviewStatus,
+};
 
 /// Turns arbitrary text into an identifier: lowercase ASCII letters, digits and
 /// dashes. Used to derive node ids from labels.

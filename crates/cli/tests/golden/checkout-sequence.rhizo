@@ -1,0 +1,16 @@
+rhizo version=1
+title "Checkout"
+layout sequence
+
+node "Customer" shape=pill
+node "Web app" id=web
+node "Orders API" id=api
+node "Payments" id=pay
+
+edge customer web label="Place order"
+edge web api label="POST /orders"
+edge api pay label="Charge card"
+edge pay api label="charged" line=dashed
+edge api api label="Save order"
+edge api web label="201 Created" line=dashed
+edge web customer label="Confirmation" line=dashed

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="note" for="node" attr.name="note" attr.type="string"/>
+  <key id="link" for="node" attr.name="link" attr.type="string"/>
+  <key id="frame" for="node" attr.name="frame" attr.type="string"/>
+  <key id="x" for="node" attr.name="x" attr.type="double"/>
+  <key id="y" for="node" attr.name="y" attr.type="double"/>
+  <key id="width" for="node" attr.name="width" attr.type="double"/>
+  <key id="height" for="node" attr.name="height" attr.type="double"/>
+  <key id="fill" for="node" attr.name="fill" attr.type="string"/>
+  <key id="shape" for="node" attr.name="shape" attr.type="string"/>
+  <key id="elabel" for="edge" attr.name="label" attr.type="string"/>
+  <key id="kind" for="edge" attr.name="kind" attr.type="string"/>
+  <key id="color" for="edge" attr.name="color" attr.type="string"/>
+  <graph id="Checkout" edgedefault="directed">
+    <node id="customer">
+      <data key="label">Customer</data>
+      <data key="frame">main</data>
+      <data key="x">0</data>
+      <data key="y">0</data>
+      <data key="width">104</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">pill</data>
+    </node>
+    <node id="web">
+      <data key="label">Web app</data>
+      <data key="frame">main</data>
+      <data key="x">152</data>
+      <data key="y">0</data>
+      <data key="width">86</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="api">
+      <data key="label">Orders API</data>
+      <data key="frame">main</data>
+      <data key="x">286</data>
+      <data key="y">0</data>
+      <data key="width">101</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <node id="pay">
+      <data key="label">Payments</data>
+      <data key="frame">main</data>
+      <data key="x">435</data>
+      <data key="y">0</data>
+      <data key="width">95</data>
+      <data key="height">37</data>
+      <data key="fill">#ffffff</data>
+      <data key="shape">rounded</data>
+    </node>
+    <edge id="e1" source="customer" target="web">
+      <data key="elabel">Place order</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e2" source="web" target="api">
+      <data key="elabel">POST /orders</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e3" source="api" target="pay">
+      <data key="elabel">Charge card</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e4" source="pay" target="api">
+      <data key="elabel">charged</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e5" source="api" target="api">
+      <data key="elabel">Save order</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e6" source="api" target="web">
+      <data key="elabel">201 Created</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+    <edge id="e7" source="web" target="customer">
+      <data key="elabel">Confirmation</data>
+      <data key="kind">link</data>
+      <data key="color">#71717a</data>
+    </edge>
+  </graph>
+</graphml>

@@ -180,3 +180,16 @@ fn jik_and_structure_errors() {
         );
     }
 }
+
+/// Frame ids end up in generated file headers, directory names and comments,
+/// like node ids: a line break in one must be an error, not a smuggled line.
+#[test]
+fn frame_ids_reject_control_characters() {
+    let src = "rhizo version=2\nframe \"P\" id=\"prod\\nresource\" {\n    node \"A\"\n}\n";
+    let loaded = load(src, Syntax::Kdl);
+    assert!(
+        loaded.diagnostics.iter().any(|d| d.severity == Severity::Error && d.message.contains("control characters")),
+        "{:?}",
+        loaded.diagnostics
+    );
+}

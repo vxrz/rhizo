@@ -1,0 +1,38 @@
+<mxfile host="rhizo" type="device">
+  <diagram id="rhizo" name="Online shop: context, containers, components">
+    <mxGraphModel dx="761" dy="706" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="f-context" value="System context" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor=#fafafa;strokeColor=#e4e4e7;fontColor=#71717a;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="697" height="642" as="geometry"/>
+        </mxCell>
+        <mxCell id="f-shop" value="Online shop" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor=#ffffff;strokeColor=#e4e4e7;fontColor=#71717a;" vertex="1" parent="f-context">
+          <mxGeometry x="28" y="144" width="641" height="381" as="geometry"/>
+        </mxCell>
+        <mxCell id="f-api" value="API" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;container=1;collapsible=0;verticalAlign=top;align=left;spacingLeft=16;spacingTop=8;fontStyle=1;fillColor=#fafafa;strokeColor=#e4e4e7;fontColor=#71717a;" vertex="1" parent="f-shop">
+          <mxGeometry x="28" y="144" width="585" height="120" as="geometry"/>
+        </mxCell>
+        <UserObject id="n-customer" label="Customer" tooltip="Browses the catalog, orders and pays">
+          <mxCell style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#1d4ed8;strokeColor=#1d4ed8;fontColor=#ffffff;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-context"><mxGeometry x="298" y="55" width="101" height="37" as="geometry"/></mxCell>
+        </UserObject>
+        <mxCell id="n-payments" value="Payment provider" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;dashed=1;" vertex="1" parent="f-context"><mxGeometry x="201" y="577" width="140" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-email" value="Email service" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;dashed=1;" vertex="1" parent="f-context"><mxGeometry x="369" y="577" width="115" height="37" as="geometry"/></mxCell>
+        <UserObject id="n-web" label="Web shop" tooltip="Single-page app in the browser">
+          <mxCell style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-shop"><mxGeometry x="275" y="55" width="91" height="37" as="geometry"/></mxCell>
+        </UserObject>
+        <mxCell id="n-orders-db" value="Orders DB" style="shape=hexagon;perimeter=hexagonPerimeter2;size=0.2;fixedSize=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-shop"><mxGeometry x="262" y="316" width="118" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-orders-ctl" value="Orders controller" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-api"><mxGeometry x="28" y="55" width="133" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-checkout" value="Checkout service" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-api"><mxGeometry x="225" y="55" width="138" height="37" as="geometry"/></mxCell>
+        <mxCell id="n-repo" value="Order repository" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d4d4d8;fontColor=#18181b;fontSize=14;strokeWidth=1.25;" vertex="1" parent="f-api"><mxGeometry x="427" y="55" width="130" height="37" as="geometry"/></mxCell>
+        <mxCell id="e-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-orders-ctl" target="n-checkout"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#a1a1aa;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-checkout" target="n-repo"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-3" value="JSON over HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-web" target="n-orders-ctl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-4" value="SQL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-repo" target="n-orders-db"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-5" value="shops with" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-customer" target="n-web"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-6" value="charges" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-checkout" target="n-payments"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-7" value="sends receipts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=1;html=1;strokeColor=#a1a1aa;strokeWidth=1.5;fontColor=#71717a;startArrow=none;endArrow=classic;" edge="1" parent="1" source="n-checkout" target="n-email"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

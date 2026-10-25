@@ -211,3 +211,146 @@ fn lossy_formats_warn_once() {
     assert!(crate::dropped_features(&doc, Format::Svg).is_none());
     assert!(crate::dropped_features(&sample(), Format::Mermaid).is_none());
 }
+
+const SEQUENCE_MMD: &str = r#"
+sequenceDiagram
+    title Login flow
+    autonumber
+    actor U as User
+    participant B as Browser
+    participant S as Server
+    U->>B: Open /login
+    activate B
+    B->>+S: POST /session
+    Note right of S: rate limited
+    alt valid credentials
+        S->>DB: SELECT user; hash
+        DB-->>S: row
+        S-->>-B: 200 + cookie
+    else invalid
+        S--xB: 401
+    end
+    loop every 5 min
+        B-)S: heartbeat
+    end
+    B<<->>S: sync
+    deactivate B
+    B->>B: render dashboard
+    S-->B
+"#;
+
+#[test]
+fn mermaid_sequence_import() {
+    let (doc, warnings) = import(SEQUENCE_MMD, Format::Mermaid).unwrap();
+    assert_eq!(doc.title.as_deref(), Some("Login flow"));
+    assert_eq!(doc.frames[0].layout, LayoutKind::Sequence);
+    let ids: Vec<&str> = doc.nodes.keys().map(|k| k.as_str()).collect();
+    assert_eq!(ids, ["U", "B", "S", "DB"]);
+    assert_eq!(doc.nodes[&id("U")].label, "User");
+    assert_eq!(doc.nodes[&id("U")].style.shape, Some(Shape::Pill));
+    assert_eq!(doc.nodes[&id("S")].note.as_deref(), Some("rate limited"));
+    assert_eq!(doc.edges.len(), 10);
+    assert_eq!(doc.edges[1].to.as_str(), "S", "activation markers are not part of the name");
+    assert_eq!(doc.edges[2].label.as_deref(), Some("SELECT user; hash"));
+    assert_eq!(doc.edges[3].line(), LineStyle::Dashed);
+    assert_eq!(doc.edges[5].arrow, Arrow::End);
+    assert_eq!(doc.edges[7].arrow, Arrow::Both);
+    assert_eq!((doc.edges[8].from.as_str(), doc.edges[8].to.as_str()), ("B", "B"));
+    assert_eq!(
+        (doc.edges[9].arrow, doc.edges[9].line(), doc.edges[9].label.as_deref()),
+        (Arrow::None, LineStyle::Dashed, None)
+    );
+    let skipped: Vec<&str> = warnings.iter().map(|w| w.message.split('`').nth(1).unwrap()).collect();
+    assert_eq!(skipped, ["autonumber", "activate", "alt", "loop", "deactivate"]);
+}
+
+#[test]
+fn mermaid_sequence_roundtrip() {
+    let (doc, _) = import(SEQUENCE_MMD, Format::Mermaid).unwrap();
+    let mmd = out(&doc, Format::Mermaid);
+    assert!(mmd.contains("sequenceDiagram\n    actor U as User\n"), "{mmd}");
+    assert!(mmd.contains("S->>DB: SELECT user#59; hash"), "{mmd}");
+    let (back, warnings) = import(&mmd, Format::Mermaid).unwrap();
+    assert!(warnings.is_empty(), "{warnings:?}");
+    let shape = |d: &Document| {
+        let nodes: Vec<_> = d.nodes.values().map(|n| (&n.id, &n.label, n.style.shape)).collect();
+        let edges: Vec<_> = d.edges.iter().map(|e| (&e.from, &e.to, &e.label, e.arrow, e.line())).collect();
+        format!("{nodes:?} {edges:?}")
+    };
+    assert_eq!(shape(&back), shape(&doc));
+    assert_eq!(out(&back, Format::Mermaid), mmd);
+}
+
+#[test]
+fn d2_sequence_export() {
+    let (doc, _) = import(SEQUENCE_MMD, Format::Mermaid).unwrap();
+    let d2 = out(&doc, Format::D2);
+    assert!(d2.contains("shape: sequence_diagram\n"), "{d2}");
+    assert!(d2.contains("U -> B: \"Open /login\""), "{d2}");
+}
+
+#[test]
+fn lifelines_are_not_exported_as_edges() {
+    let (doc, _) = import(SEQUENCE_MMD, Format::Mermaid).unwrap();
+    for f in [Format::JsonCanvas, Format::DrawIo, Format::GraphMl] {
+        let text = out(&doc, f);
+        assert!(
+            !text.contains("edge-11") && !text.contains("\"e11\"") && !text.contains("e-11"),
+            "{f:?}: lifelines exported"
+        );
+    }
+}
+
+const NESTED: &str = r#"
+frame "Context" layout=layered {
+    node "Customer"
+    frame "Shop" layout=layered {
+        node "Web"
+        frame "API" layout=layered direction=right {
+            edge "Controller" "Service"
+        }
+    }
+    edge customer web
+}
+node "Loose"
+edge service loose
+"#;
+
+#[test]
+fn nested_frames_export_without_losing_nodes() {
+    let doc = import(NESTED, Format::Rhizo).unwrap().0;
+    for f in [
+        Format::Mermaid,
+        Format::D2,
+        Format::Dot,
+        Format::Opml,
+        Format::FreeMind,
+        Format::Markdown,
+        Format::JsonCanvas,
+        Format::DrawIo,
+        Format::GraphMl,
+    ] {
+        let text = out(&doc, f);
+        for n in doc.nodes.values() {
+            assert!(text.contains(&n.label), "{} lost `{}`", f.name(), n.label);
+        }
+        assert_eq!(crate::dropped_features(&doc, f).is_some(), !crate::keeps_nested_frames(f), "{}", f.name());
+    }
+    // Subgraphs and containers nest.
+    let mmd = out(&doc, Format::Mermaid);
+    assert!(mmd.contains("    subgraph context[\"Context\"]\n        customer(\"Customer\")\n        subgraph shop"));
+    assert!(mmd.contains("            subgraph api[\"API\"]\n"));
+    let d2 = out(&doc, Format::D2);
+    assert!(d2.contains("context.shop.api.service -> loose"), "{d2}");
+    assert!(out(&doc, Format::Dot).contains("        subgraph cluster_shop {"));
+    let drawio = out(&doc, Format::DrawIo);
+    roxmltree::Document::parse(&drawio).unwrap();
+    assert!(drawio.contains(r#"<mxCell id="f-api" "#) && drawio.contains(r#"parent="f-shop">"#));
+
+    // Mermaid reads its own nesting back.
+    let back = import(&mmd, Format::Mermaid).unwrap().0;
+    let parent = |id: &str| back.frame(&id.into()).and_then(|f| f.parent.clone()).map(|p| p.to_string());
+    assert_eq!(parent("api").as_deref(), Some("shop"));
+    assert_eq!(parent("shop").as_deref(), Some("context"));
+    assert_eq!(back.nodes.len(), doc.nodes.len());
+}
