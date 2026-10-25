@@ -3,6 +3,7 @@ name = "rhizo-cli"
 description = "Command-line interface for rhizo"
 version.workspace = true
 edition.workspace = true
+# rmcp needs 1.88.
 rust-version.workspace = true
 license.workspace = true
 
@@ -12,6 +13,11 @@ rhizo-lang.workspace = true
 rhizo-layout.workspace = true
 rhizo-render.workspace = true
 rhizo-interop.workspace = true
+rhizo-kit.workspace = true
+rhizo-compile.workspace = true
+rhizo-mcp.workspace = true
+rhizo-project.workspace = true
+rhizo-iac.workspace = true
 clap.workspace = true
 miette = { workspace = true, features = ["fancy"] }
 serde_json.workspace = true
