@@ -1,0 +1,22 @@
+[package]
+name = "rhizo-compile"
+description = "Compiles typed rhizo documents into spec bundles (JSON Schema, OpenAPI, Serverless Workflow, Node-RED)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-lang.workspace = true
+rhizo-kit.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml_ng.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+jsonschema.workspace = true
+rhizo-project.workspace = true

@@ -1,0 +1,17 @@
+[package]
+name = "rhizo-project"
+description = "Projects: several rhizo files that reference each other"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-lang.workspace = true
+rhizo-kit.workspace = true
+rhizo-interop.workspace = true
+# Normal dependency only this way: rhizo-compile uses rhizo-project in its tests alone.
+rhizo-compile.workspace = true
+serde.workspace = true
+serde_json.workspace = true
