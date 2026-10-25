@@ -1,0 +1,13 @@
+rhizo version=2
+title "Intent"
+
+node "Customers can order online" id=goal type=rhizo.goal {
+    note "A customer pays in the browser and gets a confirmation email."
+    accept "An order placed through the checkout shows up in GET /orders"
+}
+node "TypeScript on Node.js 22" id=stack type=rhizo.decision {
+    props status="accepted" decision="Build the API and the checkout in TypeScript on Node.js 22"
+}
+node "Payments provider" id=payments type=rhizo.decision {
+    props status="proposed" { options "Stripe" "Adyen" }
+}

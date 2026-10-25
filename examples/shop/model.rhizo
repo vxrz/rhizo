@@ -1,0 +1,24 @@
+rhizo version=2
+title "Domain model"
+use data version="0.1"
+
+// The entities everything else refers to: api.rhizo and flows/ use them as
+// model:customer, model:order. Details live here, once.
+node "Customer" id=customer type=data.entity {
+    note "Someone who can place orders."
+    node "id" id=customer-id type=data.field { props format="uuid" required=#true }
+    node "email" id=customer-email type=data.field { props format="email" required=#true pii="personal" }
+    node "name" id=customer-name type=data.field { props pii="personal" }
+}
+node "Order" id=order type=data.entity {
+    node "id" id=order-id type=data.field { props format="uuid" required=#true }
+    node "total" id=order-total type=data.field { props type="number" min=0 required=#true }
+    node "status" id=order-status type=data.field { props required=#true }
+}
+node "Status" id=status type=data.enum {
+    - "open"
+    - "paid"
+    - "shipped"
+}
+edge status order-status
+edge order customer kind=data label="placed by" { props cardinality="one" }

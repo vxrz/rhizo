@@ -22,6 +22,9 @@ The commands below assume the CLI is installed (`cargo install --path crates/cli
 | `08-errors.rhizo` | Deliberate mistakes, to see the diagnostics |
 | `09-checkout.mmd` | A Mermaid flowchart to import |
 | `10-outline.md` | A Markdown outline that becomes a mindmap |
+| `11-data-model.rhizo` | The `data` kit: entities, fields, an API and events; checked against the kit's schemas and compiled to JSON Schema, OpenAPI and AsyncAPI |
+| `12-azure-infra.rhizo` | Cloud-neutral infrastructure with `cloud="azure"`: every neutral type and edge kind, compiled to OpenTofu with pinned Azure Verified Modules |
+| `13-gcp-infra.rhizo` | The same with `cloud="gcp"`: compiled to OpenTofu with pinned terraform-google-modules, Cloud Run functions and API Gateway |
 
 ## In the viewer
 
@@ -55,6 +58,13 @@ rhizo convert 09-checkout.mmd -o checkout.rhizo        # Mermaid → rhizo
 rhizo convert 10-outline.md -o outline.png             # Markdown outline → mindmap image
 rhizo convert 02-flowchart.rhizo -o flow.mmd           # → Mermaid; also .d2 .dot .drawio .canvas .opml .mm .graphml .json .yaml
 rhizo convert 07-typed-infra.rhizo -o infra.graphml    # typed data survives in GraphML and draw.io
+rhizo check 11-data-model.rhizo                        # then break a prop, e.g. method="send"
+rhizo compile 12-azure-infra.rhizo -o azure/           # → azure/infra/staging/*.tf and a brief
+rhizo compile 13-gcp-infra.rhizo -o gcp/               # → gcp/infra/staging/*.tf and a brief
+rhizo types data.field                                 # what a kit type accepts
+rhizo compile 11-data-model.rhizo -o build             # JSON Schema + OpenAPI 3.1 + AsyncAPI 3 in build/specs
+rhizo new data > api.rhizo                             # a typed starter to build on
+rhizo mcp 11-data-model.rhizo                          # serve it to an AI agent (see the main README)
 rhizo fmt 01-mindmap.rhizo                             # canonical formatting
 rhizo watch 04-network.rhizo -o network.svg            # re-render on every save
 rhizo formats                                          # everything rhizo reads and writes

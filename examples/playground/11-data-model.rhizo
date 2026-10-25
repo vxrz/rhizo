@@ -1,0 +1,52 @@
+rhizo version=2
+title "Shop data model"
+use data version="0.1"
+
+// The data kit: entities with fields, an API with operations. `rhizo check`
+// validates every props block against the kit's JSON Schemas, and
+// `rhizo types data.field` shows what a type accepts.
+frame "Model" layout=layered direction=right {
+    node "Customer" id=customer type=data.entity {
+        node "id" id=customer-id type=data.field { props type="string" format="uuid" required=#true }
+        node "email" id=customer-email type=data.field { props type="string" format="email" required=#true pii="personal" }
+        node "name" id=customer-name type=data.field { props pii="personal" }
+    }
+    node "Order" id=order type=data.entity {
+        node "id" id=order-id type=data.field { props type="string" format="uuid" required=#true }
+        node "total" id=order-total type=data.field { props type="number" min=0 required=#true }
+        node "status" id=order-status type=data.field { props type="string" { enum "open" "paid" "shipped" } }
+        node "placed at" id=placed-at type=data.field { props type="string" format="date-time" }
+    }
+    edge order customer kind=data label="placed by" { props cardinality="one" }
+}
+
+frame "Shop API" type=data.api layout=layered direction=right {
+    props version="1.0.0" auth="oauth2" license="Apache-2.0" { servers { - "https://api.example.com" } }
+    node "List orders" id=list-orders type=data.operation { props method="get" path="/orders" }
+    node "Place order" id=place-order type=data.operation { props method="post" path="/orders" }
+}
+
+edge list-orders order kind=data label="200" { props cardinality="many" }
+edge order place-order kind=data label="body"
+
+frame "Events" layout=layered direction=right {
+    node "Order placed" id=order-placed type=data.event
+    node "orders.placed" id=orders-placed type=data.channel { props address="orders.placed" }
+    node "Mailer" id=mailer { accept "Sends the confirmation email within a minute of the event" }
+    edge order-placed orders-placed mailer
+}
+edge order order-placed kind=data label="payload"
+
+// What done looks like, and how to build it: `rhizo brief` hands both to an agent.
+frame "Intent" layout=grid {
+    node "Customers can order online" id=goal type=rhizo.goal {
+        note "A customer places an order through the API and gets a confirmation email within a minute."
+        accept "An order placed with POST /orders shows up in GET /orders"
+        accept "The mailer sends one confirmation per placed order"
+    }
+    node "TypeScript on Node.js 22" id=stack type=rhizo.decision {
+        props status="accepted" decision="Build the API and the mailer in TypeScript on Node.js 22" {
+            drivers "Team skills" "One language front to back"
+        }
+    }
+}

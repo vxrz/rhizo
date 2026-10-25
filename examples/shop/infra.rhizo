@@ -1,0 +1,60 @@
+rhizo version=2
+title "Shop infrastructure"
+use infra version="0.1"
+import "api.rhizo" as=api
+import "model.rhizo" as=model
+
+// Where the shop runs. `rhizo compile examples/shop` turns this frame into
+// an OpenTofu root module (infra/prod/), next to the API specs: the Orders
+// function implements the API's operations, so its routes come from there.
+frame "Production" id=prod type=infra.environment layout=layered direction=right {
+    props region="eu-central-1" state-bucket="shop-tofu-state" budget-monthly=300
+
+    node "Network" id=net type=aws.vpc {
+        props cidr="10.20.0.0/16" azs=3 nat="single"
+        node "App subnets" id=app-subnets type=aws.subnet { props tier="private" }
+        node "Data subnets" id=data-subnets type=aws.subnet {
+            props tier="database"
+            node "Orders DB" id=orders-db type=aws.rds.postgres {
+                props instance-class="db.t4g.small" storage-gb=20
+            }
+        }
+    }
+    node "HTTP API" id=http-api type=aws.apigateway.http {
+        props { cors-origins { - "https://shop.example.com" } }
+    }
+    node "Orders function" id=orders-fn type=aws.lambda.function {
+        props memory-mb=512 timeout-s=10
+        accept "p95 latency under 300 ms at 50 rps"
+    }
+    node "Order events" id=order-events type=aws.sns.topic
+    node "Email queue" id=email-queue type=aws.sqs.queue { props visibility-timeout-s=60 }
+    node "Email sender" id=email-fn type=aws.lambda.function {
+        props timeout-s=30
+        accept "Sends the order confirmation within a minute"
+    }
+    node "Receipts" id=receipts type=aws.s3.bucket {
+        props {
+            lifecycle { - prefix="tmp/" expire-after-days=7 }
+        }
+    }
+    node "Data key" id=data-key type=aws.kms.key { props description="Encrypts orders, receipts and emails" }
+
+    edge http-api orders-fn kind=control
+    edge orders-fn app-subnets kind=dependency
+    edge orders-fn orders-db kind=data
+    edge orders-fn receipts kind=data { props access="write" prefix="receipts/" }
+    edge orders-fn order-events kind=data
+    edge order-events email-queue kind=data
+    edge email-queue email-fn kind=control
+    edge email-fn receipts kind=data { props access="read" prefix="receipts/" }
+    edge orders-db data-key kind=dependency
+    edge receipts data-key kind=dependency
+    edge email-queue data-key kind=dependency
+}
+
+// The function is the implementation of these operations (their routes).
+edge orders-fn api:place-order kind=dependency label="implements"
+edge orders-fn api:list-orders kind=dependency label="implements"
+// Orders and customers are stored in the database.
+edge model:order orders-db kind=data label="stored in"

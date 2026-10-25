@@ -2,28 +2,34 @@ rhizo version=2
 title "Shop infrastructure (typed)"
 use infra version="0.1"
 
-// Format version 2: typed nodes with props, ports and acceptance criteria.
-// Kits that give these types meaning come later; today rhizo checks,
-// round-trips and exports them (GraphML and draw.io keep the data).
+// Typed infrastructure: `rhizo check` validates props and the infra rules,
+// `rhizo compile` turns the environment into an OpenTofu root module
+// (infra/production/*.tf) plus a brief with what is left to do by hand.
 frame "Production" type=infra.environment layout=layered direction=right {
-    props region="eu-central-1"
+    props region="eu-central-1" state-bucket="shop-tofu-state" budget-monthly=300
 
-    node "API gateway" id=api type=aws.apigateway.http
+    node "Network" id=net type=aws.vpc {
+        props cidr="10.20.0.0/16" azs=3 nat="single"
+    }
+    node "API gateway" id=api type=aws.apigateway.http {
+        props { cors-origins { - "https://shop.example.com" } }
+    }
     node "Orders function" id=orders-fn type=aws.lambda.function {
         props runtime="nodejs22.x" memory-mb=512
         accept "p95 latency under 300 ms"
     }
     node "Orders DB" id=orders-db type=aws.rds.postgres {
-        props instance="db.t4g.medium" multi-az=#true
+        props instance-class="db.t4g.medium" multi-az=#true
     }
     node "Receipts" id=receipts type=aws.s3.bucket {
         props versioning=#true {
             lifecycle { - prefix="tmp/" expire-after-days=7 }
         }
-        port out "created" kind=data
     }
 
-    edge api orders-fn kind=control
+    edge api orders-fn kind=control { props route="POST /orders" }
     edge orders-fn orders-db kind=data { props access="read-write" }
     edge orders-fn receipts kind=data { props access="write" }
+    edge orders-fn net kind=dependency label="private subnets"
+    edge orders-db net kind=dependency
 }

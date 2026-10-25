@@ -1,0 +1,77 @@
+rhizo version=2
+title "Shop infrastructure on Azure"
+use infra version="0.1"
+
+// Cloud-neutral infrastructure compiled for Azure: `cloud="azure"` turns the
+// same infra.* types into Azure Verified Modules (infra/staging/*.tf).
+// Settings only Azure has go in an `azure` block. Every neutral type and
+// every kind of edge is here.
+frame "Staging" id=staging type=infra.environment layout=layered direction=right {
+    props cloud="azure" region="westeurope" budget-monthly=300 {
+        azure state-storage-account="shoptofustate" state-container="tfstate" state-resource-group="rg-tofu-state"
+    }
+
+    node "Network" id=net type=infra.network {
+        props cidr="10.30.0.0/20" nat="single" flow-logs=#false
+        node "Private" id=private type=infra.subnet {
+            props tier="private"
+            node "Worker" id=worker type=infra.function {
+                props runtime="python3.12" timeout-s=60 {
+                    environment LOG_LEVEL="debug"
+                }
+                accept "Processes a job in under 30 s"
+            }
+        }
+        node "Data" id=data-tier type=infra.subnet {
+            props tier="database"
+            node "Reports DB" id=reports-db type=infra.database {
+                props engine-version="17" high-availability=#false deletion-protection=#false database="reports" {
+                    azure sku-name="B_Standard_B1ms"
+                }
+            }
+        }
+    }
+    node "Carts" id=carts type=infra.table {
+        props partition-key="cart_id"
+    }
+    node "Jobs" id=jobs type=infra.queue {
+        props ordered=#true lock-timeout-s=120 max-deliveries=3
+    }
+    node "Alerts" id=alerts type=infra.topic {
+        props ordered=#true
+    }
+    node "Key" id=key type=infra.key {
+        props deletion-window-days=7 description="Encrypts staging data"
+    }
+    node "Docs" id=docs type=infra.bucket {
+        props versioning=#false {
+            lifecycle { - prefix="tmp/" expire-after-days=30 }
+            azure access-tier="Cool"
+        }
+    }
+    node "Hook" id=hook type=infra.function {
+        props runtime="nodejs22.x" memory-mb=1024
+    }
+    node "API" id=api type=infra.api {
+        props { cors-origins { - "https://shop.example.com" } }
+    }
+
+    // control: routes, a queue trigger, a topic delivery
+    edge api hook kind=control { props route="POST /orders" }
+    edge jobs worker kind=control
+    edge alerts hook kind=control
+    // data: least-privilege access, a topic forwarding into a queue
+    edge worker carts kind=data { props access="read" }
+    edge worker jobs kind=data
+    edge worker reports-db kind=data
+    edge hook alerts kind=data
+    edge hook docs kind=data { props access="read-write" prefix="uploads/" }
+    edge alerts jobs kind=data
+    // dependency: placement in the network, customer-managed keys
+    edge hook net kind=dependency label="private subnet"
+    edge carts key kind=dependency
+    edge jobs key kind=dependency
+    edge alerts key kind=dependency
+    edge reports-db key kind=dependency
+    edge docs key kind=dependency
+}

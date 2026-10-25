@@ -1,0 +1,81 @@
+rhizo version=2
+title "Shop infrastructure on Google Cloud"
+use infra version="0.1"
+
+// Cloud-neutral infrastructure compiled for Google Cloud: `cloud="gcp"` turns
+// the same infra.* types into terraform-google-modules (infra/staging/*.tf).
+// Settings only Google Cloud has go in a `gcp` block. Every neutral type and
+// every kind of edge is here.
+frame "Staging" id=staging type=infra.environment layout=layered direction=right {
+    props cloud="gcp" region="europe-west3" budget-monthly=300 {
+        gcp state-bucket="shop-tofu-state" state-prefix="shop/staging"
+    }
+
+    node "Network" id=net type=infra.network {
+        props cidr="10.30.0.0/20" nat="single"
+        node "Private" id=private type=infra.subnet {
+            props tier="private"
+            node "Worker" id=worker type=infra.function {
+                props runtime="python3.12" handler="main.handle" timeout-s=60 {
+                    environment LOG_LEVEL="debug"
+                    gcp max-instance-count=10
+                }
+                accept "Processes a job in under 30 s"
+            }
+        }
+        node "Data" id=data-tier type=infra.subnet {
+            props tier="database"
+            node "Reports DB" id=reports-db type=infra.database {
+                props engine-version="17" high-availability=#false deletion-protection=#false database="reports" {
+                    gcp tier="db-custom-1-3840"
+                }
+            }
+        }
+    }
+    node "Carts" id=carts type=infra.table {
+        props partition-key="cart_id" ttl-attribute="expires_at"
+    }
+    node "Jobs" id=jobs type=infra.queue {
+        props ordered=#true lock-timeout-s=120 max-deliveries=5
+    }
+    node "Alerts" id=alerts type=infra.topic {
+        props ordered=#true
+    }
+    node "Key" id=key type=infra.key {
+        props deletion-window-days=7 description="Encrypts staging data"
+    }
+    node "Docs" id=docs type=infra.bucket {
+        props versioning=#false {
+            lifecycle { - prefix="tmp/" expire-after-days=30 }
+            gcp storage-class="NEARLINE"
+        }
+    }
+    node "Hook" id=hook type=infra.function {
+        props runtime="nodejs22.x" memory-mb=1024
+    }
+    node "API" id=api type=infra.api {
+        props {
+            cors-origins { - "https://shop.example.com" }
+            gcp region="europe-west1"
+        }
+    }
+
+    // control: routes, a queue trigger, a topic delivery
+    edge api hook kind=control { props route="POST /orders" }
+    edge jobs worker kind=control
+    edge alerts hook kind=control
+    // data: least-privilege access, a topic feeding a queue
+    edge worker carts kind=data { props access="read" }
+    edge worker jobs kind=data
+    edge worker reports-db kind=data
+    edge hook alerts kind=data
+    edge hook docs kind=data { props access="read-write" prefix="uploads/" }
+    edge alerts jobs kind=data
+    // dependency: placement in the network, customer-managed keys
+    edge hook net kind=dependency label="private subnet"
+    edge carts key kind=dependency
+    edge jobs key kind=dependency
+    edge alerts key kind=dependency
+    edge reports-db key kind=dependency
+    edge docs key kind=dependency
+}

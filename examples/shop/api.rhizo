@@ -1,0 +1,18 @@
+rhizo version=2
+title "Shop API"
+use data version="0.1"
+import "model.rhizo" as=model
+
+frame "Shop API" id=shop-api type=data.api layout=layered direction=right {
+    props version="1.0.0" auth="oauth2" license="Apache-2.0" {
+        servers { - "https://api.shop.example" }
+    }
+    node "List orders" id=list-orders type=data.operation { props method="get" path="/orders" }
+    node "Place order" id=place-order type=data.operation {
+        props method="post" path="/orders"
+        accept "A new order starts as `open`"
+    }
+}
+
+edge list-orders model:order kind=data label="200" { props cardinality="many" }
+edge model:order place-order kind=data label="body"

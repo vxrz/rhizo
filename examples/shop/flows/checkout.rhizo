@@ -1,0 +1,19 @@
+rhizo version=2
+title "Checkout"
+import "../model.rhizo" as=model
+import "../api.rhizo" as=api
+
+// A flow an agent builds as one unit. `api:place-order` and `model:order`
+// are the same things as in the other files, drawn dashed here.
+frame "Checkout" id=checkout type=rhizo.flow layout=layered direction=right {
+    props trigger="The customer presses Pay"
+    node "Cart" id=cart shape=pill
+    node "Card valid?" id=valid shape=diamond
+    node "Place order" id=api:place-order
+    node "Show error" id=error
+    node "Send confirmation" id=confirm { accept "Arrives within a minute" }
+    edge cart valid
+    edge valid api:place-order label="yes"
+    edge valid error label="no"
+    edge api:place-order confirm
+}

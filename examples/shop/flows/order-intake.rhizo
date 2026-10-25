@@ -1,0 +1,34 @@
+rhizo version=2
+title "Order intake"
+use flow version="0.1"
+import "../api.rhizo" as=api
+
+// Partners post orders to a webhook. Each order gets a fraud score; risky
+// ones go to manual review, the rest are placed through the shop API.
+// Compiles to flows/serverless-workflow/ and flows/node-red/.
+frame "Order intake" id=order-intake type=flow.workflow layout=layered direction=right {
+    props namespace="shop" version="1.0.0"
+    node "Order received" id=received type=flow.trigger.webhook { props method="post" path="/partner-orders" }
+    node "Score fraud risk" id=score type=flow.script {
+        note "Add `risk` (0 to 1) to the order, from its total and the customer's history."
+        accept "An order over 500 from a first-time customer scores above 0.5"
+    }
+    node "Risky?" id=risky type=flow.switch
+    node "Send to review" id=review type=flow.http-request {
+        props method="post" url="https://review.example.com/cases" {
+            headers { Content-Type "application/json" }
+            body { order "{{ id }}"; risk "{{ risk }}"; reason "Fraud risk {{ risk }}" }
+        }
+    }
+    node "Place order" id=place type=flow.http-request
+    node "Acknowledge" id=acknowledge type=flow.transform {
+        props { set { status "received"; order "{{ id }}" } }
+    }
+    edge received score risky
+    edge risky review label="risk > 0.8"
+    edge risky place label="default"
+    edge place acknowledge
+}
+
+// The shop API's operation, defined in api.rhizo: method, path and server come from there.
+edge place api:place-order
