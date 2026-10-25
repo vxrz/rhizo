@@ -26,6 +26,8 @@ impl TempDir {
         let n = N.fetch_add(1, Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!("rhizo-iac-{}-{nanos}-{n}", std::process::id()));
         // Not recursive: fails rather than reuse a folder someone else made.
+        // Only unix sets a mode, so elsewhere `mut` is unused.
+        #[cfg_attr(not(unix), allow(unused_mut))]
         let mut dir = std::fs::DirBuilder::new();
         // Private: the copy holds variable files, which may be secret.
         #[cfg(unix)]
