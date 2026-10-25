@@ -2756,7 +2756,7 @@ dependencies = [
  "rhizo-core",
  "rhizo-lang",
  "rhizo-layout",
- "roxmltree 0.20.0",
+ "roxmltree 0.21.1",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
