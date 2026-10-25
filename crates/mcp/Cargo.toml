@@ -1,0 +1,23 @@
+[package]
+name = "rhizo-mcp"
+description = "Model Context Protocol server for rhizo documents"
+version.workspace = true
+edition.workspace = true
+# rmcp needs 1.88.
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rhizo-core.workspace = true
+rhizo-lang.workspace = true
+rhizo-kit.workspace = true
+rhizo-compile.workspace = true
+rhizo-interop.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rmcp.workspace = true
+tokio.workspace = true
+rhizo-render.workspace = true
+base64.workspace = true
+rhizo-project.workspace = true
+rhizo-iac.workspace = true
