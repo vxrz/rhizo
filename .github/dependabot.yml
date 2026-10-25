@@ -1,0 +1,48 @@
+# Dependabot: weekly update pull requests. Security updates (for known
+# vulnerabilities) are opened right away when "Dependabot security updates" is
+# enabled in the repository settings. Versions are taken only after a cooldown
+# of two weeks (version updates only, not security updates), so a compromised
+# release that is pulled within days does not reach us.
+#
+# The repository's home is Forgejo: GitHub is a push mirror. Merge a Dependabot
+# PR by applying it on Forgejo (docs/RELEASING.md), not with the merge button.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 14
+      semver-major-days: 21
+    groups:
+      # usvg/resvg and krilla/krilla-svg must move together (one usvg in the tree, Cargo.toml)
+      svg-pdf:
+        patterns: ['usvg', 'resvg', 'krilla', 'krilla-svg']
+      # vello pins its wgpu; the viewer's GPU stack moves as one
+      gpu:
+        patterns: ['vello', 'wgpu', 'winit']
+      # one PR for all other minor and patch updates, majors stay separate (they need a closer look)
+      cargo-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: build(deps)
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Europe/Berlin
+    cooldown:
+      default-days: 14
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci(deps)

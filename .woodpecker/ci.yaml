@@ -26,4 +26,4 @@ steps:
       - cargo clippy --workspace --all-targets --locked -- -D warnings
       - cargo test --workspace --locked
       # Model, format, layout and interop stay free of native deps.
-      - cargo check --locked --target wasm32-unknown-unknown -p rhizo-core -p rhizo-lang -p rhizo-layout -p rhizo-interop
+      - cargo check --locked --target wasm32-unknown-unknown -p rhizo-core -p rhizo-lang -p rhizo-layout -p rhizo-interop -p rhizo-kit -p rhizo-compile -p rhizo-project

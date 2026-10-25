@@ -1,0 +1,254 @@
+# Builds rhizo (CLI) and rhizo-view (viewer) for macOS, Linux and Windows.
+# A signed tag like v0.2.0 (pushed to Forgejo, mirrored here) publishes a GitHub
+# release; v0.2.0-beta.1 and similar become a pre-release. "Run workflow" builds
+# without releasing (download the archives from the run's artifacts).
+# How to cut a release: docs/RELEASING.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Hardening: actions pinned to commit SHAs, no persisted git credentials, no build
+# cache for release builds (cache poisoning), time limits; releases are never cancelled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Version (the tag must match Cargo.toml)
+        id: version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "rhizo-cli") | .version')
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          # 22.04 (glibc 2.35): the binaries also run on older distributions than 24.04 would allow
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      ARCHIVE: rhizo-${{ needs.plan.outputs.version }}-${{ matrix.target }}
+      # Only whether the secrets exist, so build scripts never see them.
+      MACOS_SIGN: ${{ secrets.APPLE_CERTIFICATE_P12 != '' }}
+      MACOS_NOTARIZE: ${{ secrets.APPLE_API_KEY_P8 != '' }}
+      WINDOWS_SIGN: ${{ secrets.AZURE_CLIENT_SECRET != '' }}
+    steps:
+      - name: Keep LF line endings
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal -t "$TARGET" && rustup default stable
+      - name: Build
+        run: cargo build --release --locked --target "$TARGET" -p rhizo-cli -p rhizo-app
+      - name: Stage
+        run: |
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=.exe
+          mkdir -p "dist/$ARCHIVE"
+          cp "target/$TARGET/release/rhizo$ext" "target/$TARGET/release/rhizo-view$ext" "dist/$ARCHIVE/"
+          cp README.md LICENSE-* "dist/$ARCHIVE/"
+      - name: Smoke test
+        run: |
+          "dist/$ARCHIVE/rhizo" --version
+          "dist/$ARCHIVE/rhizo-view" --help > /dev/null
+
+      # macOS: Developer ID signing and notarization, skipped without the secrets (docs/RELEASING.md).
+      - name: Sign (macOS)
+        if: runner.os == 'macOS' && env.MACOS_SIGN == 'true'
+        env:
+          CERT_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          kc_pass=$(openssl rand -hex 16)
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$kc_pass" "$keychain"
+          security set-keychain-settings -lut 900 "$keychain"
+          security unlock-keychain -p "$kc_pass" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kc_pass" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain"
+          rm "$RUNNER_TEMP/cert.p12"
+          for bin in rhizo rhizo-view; do
+            codesign --force --options runtime --timestamp --keychain "$keychain" --sign "$IDENTITY" "dist/$ARCHIVE/$bin"
+            codesign --verify --strict --verbose=2 "dist/$ARCHIVE/$bin"
+          done
+      - name: Notarize (macOS)
+        if: runner.os == 'macOS' && env.MACOS_SIGN == 'true' && env.MACOS_NOTARIZE == 'true'
+        env:
+          API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          echo "$API_KEY_P8" > "$RUNNER_TEMP/key.p8"
+          ditto -c -k --keepParent "dist/$ARCHIVE" "$RUNNER_TEMP/notarize.zip"
+          # Bare executables cannot be stapled: Gatekeeper looks the ticket up online.
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$RUNNER_TEMP/key.p8" \
+            --key-id "$API_KEY_ID" --issuer "$API_ISSUER_ID" --wait
+          rm "$RUNNER_TEMP/key.p8"
+
+      # Windows: Azure Artifact Signing (formerly Trusted Signing), skipped without the secrets.
+      - name: Sign (Windows)
+        if: runner.os == 'Windows' && env.WINDOWS_SIGN == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_CERTIFICATE_PROFILE }}
+          files-folder: dist/${{ env.ARCHIVE }}
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-digest: SHA256
+
+      - name: Package
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = Windows ]; then 7z a "$ARCHIVE.zip" "$ARCHIVE"; else tar czf "$ARCHIVE.tar.gz" "$ARCHIVE"; fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.ARCHIVE }}
+          path: dist/${{ env.ARCHIVE }}.*
+          if-no-files-found: error
+
+  sbom:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
+        with:
+          tool: cargo-cyclonedx@0.5.9
+      # One CycloneDX SBOM per binary, covering the dependencies of every target platform.
+      - name: CycloneDX SBOMs
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          for crate in cli app; do
+            cargo cyclonedx --manifest-path "crates/$crate/Cargo.toml" --format json --spec-version 1.5 --describe binaries
+          done
+          mkdir sbom
+          mv crates/cli/rhizo_bin.cdx.json "sbom/rhizo-$VERSION.cdx.json"
+          mv crates/app/rhizo-view_bin.cdx.json "sbom/rhizo-view-$VERSION.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: sbom/*.cdx.json
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [plan, build, sbom]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write # keyless signing of the attestations (Sigstore, no long-lived key)
+      attestations: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        run: cd out && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      # Signed build provenance (SLSA) for every download: verify with
+      #   gh attestation verify rhizo-<version>-<target>.tar.gz --repo <owner>/rhizo
+      - name: Build provenance attestation
+        # Artifact attestations need a public repo on GitHub's free plans; skipped while private.
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            out/rhizo-*.tar.gz
+            out/rhizo-*.zip
+            out/SHA256SUMS.txt
+      - name: SBOM attestation (rhizo)
+        # Artifact attestations need a public repo on GitHub's free plans; skipped while private.
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: |
+            out/rhizo-*.tar.gz
+            out/rhizo-*.zip
+          sbom-path: out/rhizo-${{ env.VERSION }}.cdx.json
+      - name: SBOM attestation (rhizo-view)
+        # Artifact attestations need a public repo on GitHub's free plans; skipped while private.
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: |
+            out/rhizo-*.tar.gz
+            out/rhizo-*.zip
+          sbom-path: out/rhizo-view-${{ env.VERSION }}.cdx.json
+      # This version's section of CHANGELOG.md ("## [0.2.0]" or "## 0.2.0" up to the next "## "),
+      # otherwise GitHub's generated notes.
+      - name: Release notes
+        id: notes
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            awk -v v="$VERSION" '/^## /{ if (f) exit; f = index($0, "[" v "]") || index($0, "## " v) || index($0, "## v" v); next } f' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          fi
+          if [ -s "$RUNNER_TEMP/notes.md" ]; then echo "file=$RUNNER_TEMP/notes.md" >> "$GITHUB_OUTPUT"; fi
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ steps.notes.outputs.file }}
+        run: |
+          flags=()
+          if [ -n "$NOTES" ]; then flags+=(--notes-file "$NOTES"); else flags+=(--generate-notes); fi
+          # v1.2.3-beta.1 and similar → pre-release
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "rhizo $VERSION" "${flags[@]}"

@@ -1,0 +1,43 @@
+# The slow OpenTofu suites: the #[ignore]d tests in rhizo-iac and rhizo-compile
+# plan real modules with `tofu` and download providers from the OpenTofu registry
+# (several minutes, needs network). Weekly and by hand, not on every push.
+# Locally: cargo test -p rhizo-iac -p rhizo-compile -- --ignored
+name: OpenTofu
+
+on:
+  schedule:
+    - cron: '23 3 * * 2' # Tuesdays 03:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tofu-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+
+jobs:
+  ignored:
+    name: tofu suites (cargo test -- --ignored)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.13.2
+          tofu_wrapper: false # the tests parse tofu's own output
+      # The tests skip (pass) without tofu: fail here instead.
+      - run: tofu version
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo test --locked -p rhizo-iac -p rhizo-compile -- --ignored

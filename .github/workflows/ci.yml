@@ -1,39 +1,101 @@
+# The same checks as .woodpecker/ci.yaml (the Forgejo CI), on Linux, macOS and
+# Windows. A change to one CI system usually needs the same change in the other.
+# Hardening: actions pinned to commit SHAs, no persisted git credentials, time limits.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
+  # No debug info: faster builds and far less memory when linking test binaries.
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
 
 jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal -c rustfmt && rustup default stable
+      - run: cargo fmt --all --check
+
   test:
+    # The viewer (rhizo-view) builds on all three. The GPU tests in crates/app/tests/offscreen.rs
+    # skip themselves when there is no adapter, as on Woodpecker; the OpenTofu suites are
+    # #[ignore]d and run in tofu.yml.
+    name: test (${{ matrix.os }})
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      # Golden files and fixtures are compared byte for byte: no CRLF conversion on Windows.
+      - name: Keep LF line endings
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal -c clippy && rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Fonts for render tests
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y fonts-dejavu-core
-      - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends fonts-dejavu-core
+      # Per OS: the macOS menu bar (muda) and other cfg(target_os) code is only linted where it builds.
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
 
   wasm:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-      # The model, language and layout crates must stay free of native deps.
-      - run: cargo check --target wasm32-unknown-unknown -p rhizo-core -p rhizo-lang -p rhizo-layout -p rhizo-interop
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal -t wasm32-unknown-unknown && rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # Model, format, layout and interop stay free of native deps.
+      - run: cargo check --locked --target wasm32-unknown-unknown -p rhizo-core -p rhizo-lang -p rhizo-layout -p rhizo-interop -p rhizo-kit -p rhizo-compile -p rhizo-project
+
+  msrv:
+    # Every rust-version the workspace declares, checked with exactly that toolchain on the
+    # crates that declare it (cargo refuses a dependency that needs a newer rustc).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check each declared rust-version
+        run: |
+          meta=$(cargo metadata --no-deps --format-version 1)
+          for v in $(jq -r '[.packages[].rust_version // empty] | unique | .[]' <<<"$meta"); do
+            mapfile -t pkgs < <(jq -r --arg v "$v" '.packages[] | select(.rust_version == $v) | "--package=" + .name' <<<"$meta")
+            echo "::group::Rust $v: ${pkgs[*]}"
+            rustup toolchain install "$v" --profile minimal
+            cargo "+$v" check --locked --all-targets "${pkgs[@]}"
+            echo "::endgroup::"
+          done
