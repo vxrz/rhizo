@@ -28,7 +28,7 @@ schemars = { version = "1.2", features = ["indexmap2"] }
 thiserror = "2.0"
 miette = "7.6"
 kdl = "6.7"
-jsonschema = { version = "0.59", default-features = false }
+jsonschema = { version = "0.60", default-features = false }
 semver = "1.0"
 sha2 = "0.11"
 rmcp = { version = "3.6", default-features = false, features = ["server", "macros", "transport-io"] }
