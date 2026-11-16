@@ -44,7 +44,7 @@ krilla = "0.8"
 krilla-svg = "0.8"
 ttf-parser = "0.25"
 pretty_assertions = "1.4"
-hcl-edit = "0.9.8"
+hcl-edit = "0.10.0"
 
 [profile.release]
 lto = "thin"
