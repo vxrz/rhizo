@@ -2849,32 +2849,36 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "3.6.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceb42e9e47443cd83a834dea57b5816d35481417bae72ade5dc5615c59122e26"
+checksum = "391f153431ab68664d946513ea0cb3edbca78eaf99c5a983036cacab6220d85b"
 dependencies = [
  "chrono",
  "futures",
  "indexmap",
  "libc",
  "pastey",
+ "percent-encoding",
  "pin-project-lite",
  "rmcp-macros",
  "schemars",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
  "tracing",
+ "unicode-general-category",
+ "unicode-normalization",
  "uuid",
 ]
 
 [[package]]
 name = "rmcp-macros"
-version = "3.6.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f55ef2d84752d676d735604548fcb65811504e23330d85670b0eff5f8735144"
+checksum = "3598e3f36f4af2b5219b133baf7d97a2197039225adc3d4acf3dd8805b5a2aef"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -3119,9 +3123,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
+checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -3672,6 +3676,15 @@ name = "unicode-linebreak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b09c83c3c29d37506a3e260c08c03743a6bb66a9cd432c6934ab501a190571f"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-properties"
