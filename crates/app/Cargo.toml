@@ -21,7 +21,7 @@ rhizo-project.workspace = true
 rhizo-iac.workspace = true
 rhizo-compile.workspace = true
 serde_json.workspace = true
-rfd = "0.17"
+rfd = "0.18"
 # The text pane's copy and paste.
 arboard = { version = "3.7", default-features = false }
 vello = "0.11"
